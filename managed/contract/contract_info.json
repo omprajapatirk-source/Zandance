@@ -1,0 +1,57 @@
+{
+  "name": "ZandanceRouter",
+  "version": "1.0.0",
+  "compilerVersion": "0.24.1",
+  "circuits": [
+    {
+      "name": "initialize",
+      "hasWitnesses": false,
+      "witnessList": []
+    },
+    {
+      "name": "registerRelayer",
+      "hasWitnesses": false,
+      "witnessList": []
+    },
+    {
+      "name": "deregisterRelayer",
+      "hasWitnesses": false,
+      "witnessList": []
+    },
+    {
+      "name": "depositDustReserve",
+      "hasWitnesses": false,
+      "witnessList": []
+    },
+    {
+      "name": "applyDustDecay",
+      "hasWitnesses": false,
+      "witnessList": []
+    },
+    {
+      "name": "sponsorFeeIntent",
+      "hasWitnesses": true,
+      "witnessList": [
+        "getSenderSecret",
+        "getIntentPayload",
+        "getShieldedBalance"
+      ]
+    },
+    {
+      "name": "claimReimbursement",
+      "hasWitnesses": false,
+      "witnessList": []
+    }
+  ],
+  "publicLedgerState": {
+    "admin": "Bytes<32>",
+    "dustPoolReserve": "Uint<64>",
+    "totalSponsoredTransactions": "Uint<64>",
+    "totalDustSponsored": "Uint<64>",
+    "currentEpoch": "Uint<64>",
+    "activeRelayers": "Map<Bytes<32>, Boolean>",
+    "intentCommitments": "Map<Bytes<32>, Uint<64>>",
+    "settledIntents": "Map<Bytes<32>, Boolean>"
+  },
+  "checksum": "b6f10fb3a39e9ab7b980805b8dae951c3ab53a8ec91e54993c6d6980f58926fa"
+}

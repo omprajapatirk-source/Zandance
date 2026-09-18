@@ -1,0 +1,15 @@
+{
+  "version": "0.24.0",
+  "circuit": "sponsorFeeIntent",
+  "isShielded": true,
+  "inputs": [
+    "intentHash",
+    "maxFee"
+  ],
+  "witnesses": [
+    "getSenderSecret",
+    "getIntentPayload",
+    "getShieldedBalance"
+  ],
+  "hash": "cd65ab0da4a911f456cf261454cb9456218fdd28597bf01393e404141cf159bf"
+}

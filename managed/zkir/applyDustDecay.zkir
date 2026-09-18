@@ -1,0 +1,10 @@
+{
+  "version": "0.24.0",
+  "circuit": "applyDustDecay",
+  "isShielded": false,
+  "inputs": [
+    "decayAmount"
+  ],
+  "witnesses": [],
+  "hash": "f73ffda5095a386210fec1ae4a11108713e6b209b129742f0f1b247de7aa5892"
+}

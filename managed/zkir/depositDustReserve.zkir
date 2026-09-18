@@ -1,0 +1,10 @@
+{
+  "version": "0.24.0",
+  "circuit": "depositDustReserve",
+  "isShielded": false,
+  "inputs": [
+    "amount"
+  ],
+  "witnesses": [],
+  "hash": "429fbb0268c3e852523e8f48106735ba3e01560b4e762535d1ad9fb9b4d37bf0"
+}

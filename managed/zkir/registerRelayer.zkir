@@ -1,0 +1,10 @@
+{
+  "version": "0.24.0",
+  "circuit": "registerRelayer",
+  "isShielded": false,
+  "inputs": [
+    "relayerPubkey"
+  ],
+  "witnesses": [],
+  "hash": "207b82714bbd7e9bb499d3b96a1559e6a7ed44e03c43844f1897a3c36dfb4363"
+}

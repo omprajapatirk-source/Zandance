@@ -1,0 +1,12 @@
+{
+  "version": "0.24.0",
+  "circuit": "claimReimbursement",
+  "isShielded": false,
+  "inputs": [
+    "intentHash",
+    "feeSpent",
+    "relayerPubkey"
+  ],
+  "witnesses": [],
+  "hash": "91c660a83d7051e457eaed2fe7c5dc23c35133c634d5d49e75ae50ed2b6b6dcb"
+}

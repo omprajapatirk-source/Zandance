@@ -1,0 +1,11 @@
+{
+  "version": "0.24.0",
+  "circuit": "initialize",
+  "isShielded": false,
+  "inputs": [
+    "initialAdmin",
+    "initialReserve"
+  ],
+  "witnesses": [],
+  "hash": "e2ee00ad66b8a71f256d876cefd06c6195535acc6da55f1b4490006016388c59"
+}
