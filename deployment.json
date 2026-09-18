@@ -1,0 +1,11 @@
+{
+  "contractName": "ZandanceRouter",
+  "network": "preprod",
+  "contractAddress": "02c16f00430277712f9470c4b4cc5ed31f3c3e6dab6bb815d50c4a82cca607ec",
+  "adminAddress": "025c276e4ee2938b9ded19e9ae2e70181f97009f641b68bfe2f4ee6104ed0a5b",
+  "transactionHash": "0x8a2a67e1505d4eccab980c9f6a80a62e88bc363e93a97f89c26f1af3ae3bf5e7",
+  "blockHeight": 1428940,
+  "deployedAt": "2026-09-18T17:30:38.304Z",
+  "initialReserve": "1000000000",
+  "explorerUrl": "https://preprod.midnight.network/contract/02c16f00430277712f9470c4b4cc5ed31f3c3e6dab6bb815d50c4a82cca607ec"
+}
