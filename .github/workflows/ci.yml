@@ -1,0 +1,41 @@
+name: Zandance CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    name: Build, Verify Compact Circuits & Test Suite
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Compile Midnight Compact Smart Contract
+        run: npm run compact:compile
+
+      - name: Verify Generated Managed Directory & Circuits
+        run: |
+          test -d managed/contract || exit 1
+          test -d managed/zkir || exit 1
+          test -d managed/keys || exit 1
+          test -f managed/contract/contract_info.json || exit 1
+
+      - name: Run Vitest Test Suite (8+ Automated Tests)
+        run: npm test
+
+      - name: Build Web dApp Production Bundle
+        run: npm run build
