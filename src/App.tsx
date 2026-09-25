@@ -132,7 +132,20 @@ export function App() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <a
+            href="https://x.com/ZandanceFi"
+            target="_blank"
+            rel="noreferrer"
+            className="btn-secondary"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none', fontSize: '0.82rem', padding: '0.45rem 0.85rem' }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+            <span>@ZandanceFi</span>
+          </a>
+
           <div className="network-badge">
             <span className="network-pulse" />
             <span>Midnight Preprod</span>
@@ -155,6 +168,16 @@ export function App() {
 
       {/* Hero Stats */}
       <div className="stat-grid">
+        <div className="glass-card stat-item">
+          <div className="stat-icon-wrapper" style={{ background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8' }}>
+            <Zap size={24} />
+          </div>
+          <div>
+            <div className="stat-value">70 Wallets</div>
+            <div className="stat-label">Verified Preprod Users</div>
+          </div>
+        </div>
+
         <div className="glass-card stat-item">
           <div className="stat-icon-wrapper" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981' }}>
             <Droplets size={24} />
@@ -265,6 +288,12 @@ export function App() {
           <span>Zandance v1.0.0 — Built on Midnight Network</span>
         </div>
         <div className="footer-links">
+          <a href="https://x.com/ZandanceFi" target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: '#38bdf8' }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+            <span>@ZandanceFi</span>
+          </a>
           <a href="https://github.com/omprajapatirk-source/Zandance" target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" />
