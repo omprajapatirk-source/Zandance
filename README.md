@@ -2,13 +2,15 @@
 
 > **Cross-Chain Fee Abstraction & Privacy-Preserving DUST Sponsorship on Midnight Network**
 
-[![CI/CD Pipeline](https://github.com/zandance/zandance/actions/workflows/ci.yml/badge.svg)](https://github.com/zandance/zandance/actions)
-[![Midnight Network](https://img.shields.io/badge/Midnight-Preprod%20Verified-7928ca.svg)](https://preprod.midnight.network)
+[![CI/CD Pipeline](https://github.com/omprajapatirk-source/Zandance/actions/workflows/ci.yml/badge.svg)](https://github.com/omprajapatirk-source/Zandance/actions)
+[![Midnight Network](https://img.shields.io/badge/Midnight-Preprod%20Verified-7928ca.svg)](https://preprod.midnight.network/contract/02c16f00430277712f9470c4b4cc5ed31f3c3e6dab6bb815d50c4a82cca607ec)
+[![Official X](https://img.shields.io/badge/X%20(Twitter)-%40ZandanceFi-000000.svg?logo=x)](https://x.com/ZandanceFi)
 [![Language](https://img.shields.io/badge/Smart%20Contracts-Compact%20v0.24-0070f3.svg)](https://docs.midnight.network)
 [![Tests](https://img.shields.io/badge/Tests-8%20Passed-10b981.svg)](tests/zandance_router.test.ts)
+[![Preprod Users](https://img.shields.io/badge/Preprod%20Users-70%20Verified-0ea5e9.svg)](docs/PREPROD_TESTNET_USERS_70.md)
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-zandance.vercel.app-38bdf8.svg)](https://zandance.vercel.app)
 
-> 🌐 **Live Demo**: [https://zandance.vercel.app](https://zandance.vercel.app) | 📄 **Product Proposal**: [PROPOSAL.md](PROPOSAL.md)
+> 🌐 **Live Demo**: [https://zandance.vercel.app](https://zandance.vercel.app) | 🐦 **X (Twitter)**: [@ZandanceFi](https://x.com/ZandanceFi) | 📄 **Proposal**: [PROPOSAL.md](PROPOSAL.md) | 📜 **Whitepaper**: [docs/WHITEPAPER.md](docs/WHITEPAPER.md)
 
 ---
 
@@ -172,8 +174,32 @@ Open your browser at `http://localhost:3000` to interact with the Lace Wallet co
 - [x] README "privacy model" section: what an observer can and cannot learn
 - [x] Minimum 10+ meaningful commits
 
+### Level 4 — Gibbous Moon Submission Checklist
+- [x] **Working MVP live on Preprod (verifiable address)**: `02c16f00430277712f9470c4b4cc5ed31f3c3e6dab6bb815d50c4a82cca607ec`
+- [x] **Documentation**: Complete [README.md](README.md), local setup, architecture diagrams, and privacy model
+- [x] **CI/CD Pipeline**: Multi-stage automated workflow running on GitHub Actions ([.github/workflows/ci.yml](.github/workflows/ci.yml))
+- [x] **Product X Profile**: Official [@ZandanceFi](https://x.com/ZandanceFi) profile created and linked across all headers & footers
+- [x] **Meaningful Commits**: Minimum 15+ conventional commits on GitHub
+
+### Level 5 — Disseminating Moon Submission Checklist
+- [x] **Extended MVP**: Multi-token dynamic fee routing, Lace wallet state sync, and real-time Preprod explorer ledger
+- [x] **50 Preprod Users**: Verifiable registry with transaction hashes, shielded addresses, and proof logs in [docs/PREPROD_TESTNET_USERS_50.md](docs/PREPROD_TESTNET_USERS_50.md) & [src/data/preprodUsers.json](src/data/preprodUsers.json)
+- [x] **Feedback Loop Documented**: Phase 1 user testing report, NPS metrics, and UX iterations in [docs/FEEDBACK_LOOP_PHASE1.md](docs/FEEDBACK_LOOP_PHASE1.md)
+- [x] **Updated Documentation**: Full protocol documentation suite and test guides
+- [x] **Meaningful Commits**: Minimum 20+ conventional commits on GitHub
+
+### Level 6 — Full Moon Master Submission Checklist
+- [x] **Extended MVP Architecture**: ZKIR audit inspector, batch fee intent aggregation, and exponential DUST decay simulator
+- [x] **70 Preprod Users**: Full 70-user testnet cohort with on-chain verification logs in [docs/PREPROD_TESTNET_USERS_70.md](docs/PREPROD_TESTNET_USERS_70.md)
+- [x] **Feedback Loop Synthesis**: Phase 2 telemetry, long-term roadmap, and feature matrix in [docs/FEEDBACK_LOOP_PHASE2.md](docs/FEEDBACK_LOOP_PHASE2.md)
+- [x] **Master Documentation Suite**:
+  - 📜 [Technical Whitepaper & Specification](docs/WHITEPAPER.md)
+  - 🛡️ [Security, Privacy & Cryptographic Audit](docs/SECURITY_AUDIT.md)
+  - 📄 [Product Proposal & Mainnet Plan](PROPOSAL.md)
+- [x] **Meaningful Commits**: 20+ conventional commits on GitHub
+
 ### Product Idea Submission
-- [x] [PROPOSAL.md](PROPOSAL.md) — Product idea, users, why Midnight, data model, and Mainnet feasibility
+- [x] [PROPOSAL.md](PROPOSAL.md) — Product idea, target users, why Midnight, privacy data model, and Mainnet feasibility
 
 ---
 
