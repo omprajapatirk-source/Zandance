@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { PoolStats, WalletState } from '../types';
-import { Flame, Droplets, TrendingUp, ShieldAlert, Award, Clock } from 'lucide-react';
+import { Flame, Droplets, TrendingUp, ShieldAlert, Award, Clock, Activity } from 'lucide-react';
 
 interface PoolManagerProps {
   stats: PoolStats;
@@ -17,6 +17,25 @@ export const PoolManager: React.FC<PoolManagerProps> = ({
 }) => {
   const [depositAmount, setDepositAmount] = useState('500000');
   const [decaySimAmount, setDecaySimAmount] = useState('50000');
+
+  // Calculate pool health percentage (max capacity = 1 billion DUST)
+  const maxCapacity = 1_000_000_000;
+  const healthPercent = Math.min(100, (stats.reserveDust / maxCapacity) * 100);
+  const isLow = healthPercent < 25;
+
+  // Generate epoch decay timeline data
+  const epochTimeline = useMemo(() => {
+    const epochs: { epoch: number; height: number }[] = [];
+    const baseHeight = 85;
+    for (let i = 0; i < Math.min(stats.currentEpoch, 12); i++) {
+      const decay = Math.pow(0.92, i); // 8% decay per epoch
+      epochs.push({
+        epoch: stats.currentEpoch - (Math.min(stats.currentEpoch, 12) - 1 - i),
+        height: baseHeight * decay
+      });
+    }
+    return epochs;
+  }, [stats.currentEpoch]);
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
@@ -35,6 +54,26 @@ export const PoolManager: React.FC<PoolManagerProps> = ({
         <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '1.25rem' }}>
           Midnight's anti-speculation design generates non-transferable DUST from staked NIGHT. Zandance pools DUST capacity to sponsor user cross-chain fees automatically.
         </p>
+
+        {/* DUST Pool Health Bar */}
+        <div style={{ marginBottom: '1.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem', fontSize: '0.8rem' }}>
+            <span style={{ color: 'var(--text-muted)' }}>Pool Health</span>
+            <span style={{ color: isLow ? '#f43f5e' : '#10b981', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
+              {healthPercent.toFixed(1)}%
+            </span>
+          </div>
+          <div className="decay-bar-container">
+            <div
+              className={`decay-bar-fill ${isLow ? 'low' : ''}`}
+              style={{ width: `${healthPercent}%` }}
+            />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.3rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+            <span>0 DUST</span>
+            <span>{maxCapacity.toLocaleString()} DUST (Max)</span>
+          </div>
+        </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
           <div style={{ background: 'rgba(0,0,0,0.3)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
@@ -92,6 +131,28 @@ export const PoolManager: React.FC<PoolManagerProps> = ({
         <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '1.25rem' }}>
           DUST naturally decays over time. Zandance continuously routes intents to avoid capacity waste and rebalances stale epochs via Compact circuits.
         </p>
+
+        {/* Epoch Decay Timeline Chart */}
+        <div style={{ background: 'rgba(0,0,0,0.3)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-subtle)', marginBottom: '1.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            <Activity size={14} />
+            <span>DUST Reserve Across Epochs</span>
+          </div>
+          <div className="epoch-timeline">
+            {epochTimeline.map((ep, i) => (
+              <div
+                key={ep.epoch}
+                className={`epoch-bar ${i === epochTimeline.length - 1 ? 'current' : ''}`}
+                style={{ height: `${ep.height}%` }}
+                title={`Epoch #${ep.epoch}`}
+              />
+            ))}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
+            <span>Epoch #{epochTimeline[0]?.epoch || 1}</span>
+            <span>Epoch #{stats.currentEpoch} (current)</span>
+          </div>
+        </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem', fontSize: '0.85rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0.75rem', background: 'rgba(0,0,0,0.3)', borderRadius: '8px' }}>

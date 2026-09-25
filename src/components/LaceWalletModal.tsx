@@ -1,12 +1,18 @@
 import React, { useState } from 'react';
 import { WalletState } from '../types';
-import { Shield, Key, RefreshCw, X, CheckCircle2, Lock } from 'lucide-react';
+import { Shield, Key, RefreshCw, X, CheckCircle2, Lock, AlertTriangle, ExternalLink } from 'lucide-react';
+import {
+  isLaceWalletInstalled,
+  connectLaceWallet,
+  disconnectLaceWallet,
+  type MidnightWalletInfo,
+} from '../midnight';
 
 interface LaceWalletModalProps {
   isOpen: boolean;
   onClose: () => void;
   wallet: WalletState;
-  onConnect: () => void;
+  onConnect: (walletInfo?: MidnightWalletInfo) => void;
   onDisconnect: () => void;
 }
 
@@ -18,14 +24,62 @@ export const LaceWalletModal: React.FC<LaceWalletModalProps> = ({
   onDisconnect
 }) => {
   const [connecting, setConnecting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   const handleConnect = async () => {
     setConnecting(true);
+    setError(null);
+
+    // Attempt real Lace wallet connection via DApp connector API
+    if (isLaceWalletInstalled()) {
+      try {
+        const walletInfo = await connectLaceWallet();
+        onConnect(walletInfo);
+        setConnecting(false);
+        onClose();
+        return;
+      } catch (err: any) {
+        const message = err?.message || 'Connection failed';
+
+        if (message.includes('USER_REJECTED')) {
+          setError('Connection rejected. Please approve the connection request in your Lace wallet.');
+          setConnecting(false);
+          return;
+        }
+
+        if (message.includes('WALLET_NOT_INSTALLED')) {
+          setError('Lace wallet not detected. Please install the Lace browser extension.');
+          setConnecting(false);
+          return;
+        }
+
+        // For other errors, fall through to demo mode
+        console.warn('[Zandance] DApp connector error, falling back to demo mode:', message);
+      }
+    } else {
+      console.warn('[Zandance] Lace wallet extension not detected. Using demo mode for development.');
+    }
+
+    // Fallback: demo mode for local development without Lace extension
     await new Promise((resolve) => setTimeout(resolve, 800));
-    onConnect();
+    onConnect(); // No walletInfo = use default demo state
     setConnecting(false);
+    onClose();
+  };
+
+  const handleDisconnect = async () => {
+    setError(null);
+
+    // Attempt real DApp connector disconnect
+    try {
+      await disconnectLaceWallet();
+    } catch {
+      // Silently handle – wallet may already be disconnected
+    }
+
+    onDisconnect();
     onClose();
   };
 
@@ -58,6 +112,37 @@ export const LaceWalletModal: React.FC<LaceWalletModalProps> = ({
             <X size={20} />
           </button>
         </div>
+
+        {/* Error Banner */}
+        {error && (
+          <div style={{
+            background: 'rgba(244, 63, 94, 0.08)',
+            border: '1px solid rgba(244, 63, 94, 0.3)',
+            borderRadius: '12px',
+            padding: '0.85rem 1rem',
+            marginBottom: '1rem',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '0.6rem'
+          }}>
+            <AlertTriangle size={18} color="#fb7185" style={{ flexShrink: 0, marginTop: '1px' }} />
+            <div style={{ fontSize: '0.82rem', color: '#fca5a5', lineHeight: 1.5 }}>
+              <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Connection Error</div>
+              <div>{error}</div>
+              {error.includes('install') && (
+                <a
+                  href="https://www.lace.io"
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: '#a855f7', marginTop: '0.4rem', textDecoration: 'none', fontWeight: 600 }}
+                >
+                  <span>Install Lace Wallet</span>
+                  <ExternalLink size={12} />
+                </a>
+              )}
+            </div>
+          </div>
+        )}
 
         {wallet.isConnected ? (
           <div>
@@ -102,10 +187,7 @@ export const LaceWalletModal: React.FC<LaceWalletModalProps> = ({
             <button
               className="btn-secondary"
               style={{ width: '100%', borderColor: 'rgba(244, 63, 94, 0.4)', color: '#fb7185' }}
-              onClick={() => {
-                onDisconnect();
-                onClose();
-              }}
+              onClick={handleDisconnect}
             >
               Disconnect Wallet
             </button>
@@ -126,6 +208,28 @@ export const LaceWalletModal: React.FC<LaceWalletModalProps> = ({
               <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                 Connect your Lace wallet to prove private token ownership and authorize zero-knowledge DUST sponsorship intents.
               </p>
+            </div>
+
+            {/* Wallet detection status */}
+            <div style={{
+              fontSize: '0.78rem',
+              color: isLaceWalletInstalled() ? '#10b981' : '#fbbf24',
+              marginBottom: '1rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem'
+            }}>
+              {isLaceWalletInstalled() ? (
+                <>
+                  <CheckCircle2 size={14} />
+                  <span>Lace Midnight wallet detected</span>
+                </>
+              ) : (
+                <>
+                  <AlertTriangle size={14} />
+                  <span>Lace wallet not detected — will connect in demo mode</span>
+                </>
+              )}
             </div>
 
             <button

@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { WalletState, GaslessIntent, PoolStats } from './types';
 import { LaceWalletModal } from './components/LaceWalletModal';
 import { FeeRouter } from './components/FeeRouter';
 import { PrivacyVisualizer } from './components/PrivacyVisualizer';
 import { PoolManager } from './components/PoolManager';
 import { ExplorerView } from './components/ExplorerView';
+import type { MidnightWalletInfo } from './midnight';
 import {
   Shield,
   Zap,
@@ -19,9 +20,17 @@ import {
   FileCheck
 } from 'lucide-react';
 
+interface ToastNotification {
+  id: string;
+  message: string;
+  detail: string;
+  exiting: boolean;
+}
+
 export function App() {
   const [activeTab, setActiveTab] = useState<'router' | 'privacy' | 'pool' | 'explorer'>('router');
   const [isLaceModalOpen, setIsLaceModalOpen] = useState(false);
+  const [toasts, setToasts] = useState<ToastNotification[]>([]);
 
   const [wallet, setWallet] = useState<WalletState>({
     isConnected: true, // Default connected for instant testing / demo
@@ -67,6 +76,18 @@ export function App() {
 
   const [latestExecutedIntent, setLatestExecutedIntent] = useState<GaslessIntent | null>(intents[0]);
 
+  const showToast = useCallback((message: string, detail: string) => {
+    const id = 'toast_' + Date.now();
+    setToasts(prev => [...prev, { id, message, detail, exiting: false }]);
+    // Auto-dismiss after 4 seconds
+    setTimeout(() => {
+      setToasts(prev => prev.map(t => t.id === id ? { ...t, exiting: true } : t));
+      setTimeout(() => {
+        setToasts(prev => prev.filter(t => t.id !== id));
+      }, 300);
+    }, 4000);
+  }, []);
+
   const handleIntentExecuted = (intent: GaslessIntent) => {
     setIntents((prev) => [intent, ...prev]);
     setLatestExecutedIntent(intent);
@@ -76,6 +97,10 @@ export function App() {
       totalSponsoredTxs: prev.totalSponsoredTxs + 1,
       totalDustSponsored: prev.totalDustSponsored + intent.dustEquivalent
     }));
+    showToast(
+      `✅ Gasless Transfer Settled!`,
+      `${intent.amount} ${intent.asset} via ${intent.feeToken} fee — ${intent.dustEquivalent.toLocaleString()} DUST sponsored`
+    );
   };
 
   const handleDepositDust = (amount: number) => {
@@ -83,6 +108,7 @@ export function App() {
       ...prev,
       reserveDust: prev.reserveDust + amount
     }));
+    showToast('💧 DUST Deposited', `+${amount.toLocaleString()} DUST added to the liquidity pool`);
   };
 
   const handleSimulateDecay = (amount: number) => {
@@ -91,6 +117,7 @@ export function App() {
       reserveDust: Math.max(0, prev.reserveDust - amount),
       currentEpoch: prev.currentEpoch + 1
     }));
+    showToast('🔥 Epoch Decay Applied', `−${amount.toLocaleString()} DUST decayed · Epoch #${poolStats.currentEpoch + 1}`);
   };
 
   return (
@@ -204,39 +231,96 @@ export function App() {
         </button>
       </div>
 
-      {/* Tab Panels */}
-      {activeTab === 'router' && (
-        <FeeRouter
-          wallet={wallet}
-          onIntentExecuted={handleIntentExecuted}
-        />
-      )}
+      {/* Tab Panels with transitions */}
+      <div className="tab-panel" key={activeTab}>
+        {activeTab === 'router' && (
+          <FeeRouter
+            wallet={wallet}
+            onIntentExecuted={handleIntentExecuted}
+          />
+        )}
 
-      {activeTab === 'privacy' && (
-        <PrivacyVisualizer latestIntent={latestExecutedIntent} />
-      )}
+        {activeTab === 'privacy' && (
+          <PrivacyVisualizer latestIntent={latestExecutedIntent} />
+        )}
 
-      {activeTab === 'pool' && (
-        <PoolManager
-          stats={poolStats}
-          wallet={wallet}
-          onDepositDust={handleDepositDust}
-          onSimulateDecay={handleSimulateDecay}
-        />
-      )}
+        {activeTab === 'pool' && (
+          <PoolManager
+            stats={poolStats}
+            wallet={wallet}
+            onDepositDust={handleDepositDust}
+            onSimulateDecay={handleSimulateDecay}
+          />
+        )}
 
-      {activeTab === 'explorer' && (
-        <ExplorerView intents={intents} />
-      )}
+        {activeTab === 'explorer' && (
+          <ExplorerView intents={intents} />
+        )}
+      </div>
+
+      {/* Footer */}
+      <footer className="footer">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span>🌌</span>
+          <span>Zandance v1.0.0 — Built on Midnight Network</span>
+        </div>
+        <div className="footer-links">
+          <a href="https://github.com/omprajapatirk-source/Zandance" target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" />
+              <path d="M9 18c-4.51 2-5-2-7-2" />
+            </svg>
+            <span>GitHub</span>
+          </a>
+          <a href="https://preprod.midnight.network/contract/02c16f00430277712f9470c4b4cc5ed31f3c3e6dab6bb815d50c4a82cca607ec" target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+            <ExternalLink size={14} />
+            <span>Preprod Explorer</span>
+          </a>
+          <span>MIT © 2026</span>
+        </div>
+      </footer>
 
       {/* Lace Modal */}
       <LaceWalletModal
         isOpen={isLaceModalOpen}
         onClose={() => setIsLaceModalOpen(false)}
         wallet={wallet}
-        onConnect={() => setWallet(w => ({ ...w, isConnected: true }))}
-        onDisconnect={() => setWallet(w => ({ ...w, isConnected: false }))}
+        onConnect={(walletInfo?: MidnightWalletInfo) => {
+          if (walletInfo) {
+            // Real wallet data from DApp connector
+            setWallet(w => ({
+              ...w,
+              isConnected: true,
+              address: walletInfo.address || w.address,
+              shieldedAddress: walletInfo.shieldedAddress || w.shieldedAddress,
+              dustBalance: walletInfo.balanceDust || w.dustBalance,
+              nightBalance: walletInfo.balanceNight || w.nightBalance,
+            }));
+          } else {
+            // Demo mode fallback
+            setWallet(w => ({ ...w, isConnected: true }));
+          }
+        }}
+        onDisconnect={() => setWallet(w => ({
+          ...w,
+          isConnected: false,
+        }))}
       />
+
+      {/* Toast Notifications */}
+      {toasts.length > 0 && (
+        <div className="toast-container">
+          {toasts.map(toast => (
+            <div key={toast.id} className={`toast ${toast.exiting ? 'exiting' : ''}`}>
+              <div className="toast-header">
+                <CheckCircle size={16} />
+                <span>{toast.message}</span>
+              </div>
+              <div className="toast-body">{toast.detail}</div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

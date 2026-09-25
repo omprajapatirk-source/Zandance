@@ -24,6 +24,8 @@
   "author": "Zandance Core Team",
   "license": "MIT",
   "dependencies": {
+    "@midnight-ntwrk/dapp-connector-api": "^0.2.0",
+    "@midnight-ntwrk/midnight-js-network-provider": "^0.2.0",
     "lucide-react": "^1.16.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"

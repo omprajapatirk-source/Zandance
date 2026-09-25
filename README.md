@@ -6,6 +6,9 @@
 [![Midnight Network](https://img.shields.io/badge/Midnight-Preprod%20Verified-7928ca.svg)](https://preprod.midnight.network)
 [![Language](https://img.shields.io/badge/Smart%20Contracts-Compact%20v0.24-0070f3.svg)](https://docs.midnight.network)
 [![Tests](https://img.shields.io/badge/Tests-8%20Passed-10b981.svg)](tests/zandance_router.test.ts)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-zandance.vercel.app-38bdf8.svg)](https://zandance.vercel.app)
+
+> 🌐 **Live Demo**: [https://zandance.vercel.app](https://zandance.vercel.app) | 📄 **Product Proposal**: [PROPOSAL.md](PROPOSAL.md)
 
 ---
 
@@ -139,6 +142,8 @@ npm run dev
 ```
 Open your browser at `http://localhost:3000` to interact with the Lace Wallet connector, Gasless Fee Router, and Zero-Knowledge Privacy Visualizer.
 
+> 📡 **Deployed Live Demo**: [https://zandance.vercel.app](https://zandance.vercel.app)
+
 ---
 
 ## 📋 Hackathon Submission Verification Matrix
@@ -166,6 +171,9 @@ Open your browser at `http://localhost:3000` to interact with the Lace Wallet co
 - [x] CI/CD pipeline running (`.github/workflows/ci.yml`)
 - [x] README "privacy model" section: what an observer can and cannot learn
 - [x] Minimum 10+ meaningful commits
+
+### Product Idea Submission
+- [x] [PROPOSAL.md](PROPOSAL.md) — Product idea, users, why Midnight, data model, and Mainnet feasibility
 
 ---
 

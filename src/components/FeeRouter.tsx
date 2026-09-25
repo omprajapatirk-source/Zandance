@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { WalletState, GaslessIntent } from '../types';
-import { ArrowRightLeft, Sparkles, ShieldCheck, CheckCircle2, AlertCircle, Cpu, ExternalLink } from 'lucide-react';
+import { ArrowRightLeft, Sparkles, ShieldCheck, CheckCircle2, AlertCircle, Cpu, ExternalLink, Copy, Check, Lock, Zap } from 'lucide-react';
+import { callSponsorFeeIntent, type CircuitCallResult } from '../midnight';
 
 interface FeeRouterProps {
   wallet: WalletState;
@@ -23,18 +24,36 @@ const FEE_TOKENS = [
   { symbol: 'SOL', rate: 4500000, name: 'Solana SOL', icon: '🟣' }
 ];
 
+const PROOF_STEPS = [
+  { label: 'Generating ZK Witness (getSenderSecret, getShieldedBalance)', icon: <Lock size={14} /> },
+  { label: 'Computing SNARK proof via sponsorFeeIntent circuit', icon: <Cpu size={14} /> },
+  { label: 'Broadcasting DUST-sponsored intent to Midnight Preprod', icon: <Zap size={14} /> }
+];
+
 export const FeeRouter: React.FC<FeeRouterProps> = ({ wallet, onIntentExecuted }) => {
   const [sourceChain, setSourceChain] = useState('polygon');
   const [targetChain, setTargetChain] = useState('midnight-preprod');
   const [transferAmount, setTransferAmount] = useState('100');
   const [selectedFeeToken, setSelectedFeeToken] = useState('USDC');
   const [recipient, setRecipient] = useState('0279fa9329e4bf18e907a0c84b5c77e382098b1a8ef8325da78a9c1e0892c');
-  const [status, setStatus] = useState<'idle' | 'proving' | 'sponsoring' | 'success'>('idle');
+  const [status, setStatus] = useState<'idle' | 'step0' | 'step1' | 'step2' | 'success'>('idle');
   const [latestTx, setLatestTx] = useState<GaslessIntent | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [circuitError, setCircuitError] = useState<string | null>(null);
 
   const currentFeeConfig = FEE_TOKENS.find(t => t.symbol === selectedFeeToken) || FEE_TOKENS[0];
   const requiredDust = 35000; // 35k DUST estimated transaction gas
   const quotedTokenFee = (requiredDust / currentFeeConfig.rate).toFixed(4);
+
+  const isProcessing = status === 'step0' || status === 'step1' || status === 'step2';
+
+  const copyToClipboard = async (text: string, field: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 2000);
+    } catch { /* fallback silent */ }
+  };
 
   const handleExecute = async () => {
     if (!wallet.isConnected) {
@@ -42,18 +61,55 @@ export const FeeRouter: React.FC<FeeRouterProps> = ({ wallet, onIntentExecuted }
       return;
     }
 
-    setStatus('proving');
-    // Simulate generating client-side zero-knowledge proof using Compact circuits
-    await new Promise(r => setTimeout(r, 1400));
+    setCircuitError(null);
 
-    setStatus('sponsoring');
-    // Simulate DUST pool allocation and Relayer broadcast
-    await new Promise(r => setTimeout(r, 1200));
+    // -----------------------------------------------------------------------
+    // Step 0: Build ZK Witness from wallet state
+    // -----------------------------------------------------------------------
+    setStatus('step0');
+
+    // Build the private witness inputs from wallet state
+    const senderSecret = wallet.shieldedAddress || wallet.address;
+    const intentPayload = JSON.stringify({
+      sourceChain,
+      targetChain,
+      asset: 'USDC',
+      amount: parseFloat(transferAmount),
+      recipient,
+      feeToken: selectedFeeToken,
+      nonce: Date.now(),
+    });
+    const shieldedBalance = BigInt(wallet.dustBalance || 420000);
+    const maxFee = BigInt(requiredDust);
+
+    // -----------------------------------------------------------------------
+    // Step 1: Execute sponsorFeeIntent circuit (witness build + local proof)
+    // -----------------------------------------------------------------------
+    setStatus('step1');
+
+    let circuitResult: CircuitCallResult;
+    try {
+      circuitResult = await callSponsorFeeIntent({
+        senderSecret,
+        intentPayload,
+        shieldedBalance,
+        maxFee,
+      });
+    } catch (err: any) {
+      console.error('[FeeRouter] Circuit call failed:', err);
+      setCircuitError(err?.message || 'Circuit execution failed');
+      setStatus('idle');
+      return;
+    }
+
+    // -----------------------------------------------------------------------
+    // Step 2: Broadcast result to Midnight Preprod
+    // -----------------------------------------------------------------------
+    setStatus('step2');
+    // Small delay to show the broadcasting step in the UI
+    await new Promise(r => setTimeout(r, 600));
 
     const intentId = 'int_' + Math.random().toString(36).substring(2, 9);
-    const intentHash = '0x' + Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('');
-    const txHash = '0x' + Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('');
-    const proofHex = '0xzkproof_snark_' + Array.from({length: 32}, () => Math.floor(Math.random()*16).toString(16)).join('');
 
     const newIntent: GaslessIntent = {
       id: intentId,
@@ -63,17 +119,25 @@ export const FeeRouter: React.FC<FeeRouterProps> = ({ wallet, onIntentExecuted }
       amount: parseFloat(transferAmount),
       feeToken: selectedFeeToken,
       quotedFee: parseFloat(quotedTokenFee),
-      dustEquivalent: requiredDust,
-      intentHash,
+      dustEquivalent: circuitResult.dustSpent,
+      intentHash: circuitResult.intentHash,
       status: 'settled',
       timestamp: Date.now(),
-      txHash,
-      proofHex
+      txHash: circuitResult.txHash,
+      proofHex: circuitResult.proofHex
     };
 
     setLatestTx(newIntent);
     setStatus('success');
     onIntentExecuted(newIntent);
+  };
+
+  const getStepState = (stepIndex: number) => {
+    const stepNum = status === 'step0' ? 0 : status === 'step1' ? 1 : status === 'step2' ? 2 : -1;
+    if (status === 'success') return 'complete';
+    if (stepIndex === stepNum) return 'active';
+    if (stepIndex < stepNum) return 'complete';
+    return 'pending';
   };
 
   return (
@@ -189,26 +253,60 @@ export const FeeRouter: React.FC<FeeRouterProps> = ({ wallet, onIntentExecuted }
           </div>
         </div>
 
+        {/* Circuit Error Banner */}
+        {circuitError && (
+          <div style={{
+            background: 'rgba(244, 63, 94, 0.08)',
+            border: '1px solid rgba(244, 63, 94, 0.3)',
+            borderRadius: '10px',
+            padding: '0.75rem 1rem',
+            marginBottom: '0.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            fontSize: '0.82rem',
+            color: '#fca5a5'
+          }}>
+            <AlertCircle size={16} />
+            <span>Circuit Error: {circuitError}</span>
+          </div>
+        )}
+
+        {/* Proof Progress Steps */}
+        {isProcessing && (
+          <div className="proof-steps">
+            {PROOF_STEPS.map((step, i) => {
+              const state = getStepState(i);
+              return (
+                <div key={i} className={`proof-step ${state}`}>
+                  <div className="proof-step-icon" style={{
+                    background: state === 'complete' ? 'rgba(16, 185, 129, 0.2)' : state === 'active' ? 'rgba(147, 51, 234, 0.2)' : 'rgba(255,255,255,0.05)',
+                    color: state === 'complete' ? '#10b981' : state === 'active' ? '#c084fc' : 'var(--text-muted)'
+                  }}>
+                    {state === 'complete' ? <CheckCircle2 size={14} /> : step.icon}
+                  </div>
+                  <span style={{ color: state === 'pending' ? 'var(--text-muted)' : 'var(--text-primary)', fontWeight: state === 'active' ? 600 : 400 }}>
+                    {step.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {/* Execute Button */}
         <button
           className="btn-primary"
           style={{ width: '100%', marginTop: '0.5rem', padding: '1rem' }}
           onClick={handleExecute}
-          disabled={status === 'proving' || status === 'sponsoring'}
+          disabled={isProcessing}
         >
-          {status === 'proving' && (
+          {isProcessing ? (
             <>
               <Cpu className="spin" size={20} />
-              <span>Generating Midnight Zero-Knowledge Proof...</span>
+              <span>Processing Zero-Knowledge Proof...</span>
             </>
-          )}
-          {status === 'sponsoring' && (
-            <>
-              <Sparkles size={20} />
-              <span>Relayer Fronting DUST Fee on Midnight Preprod...</span>
-            </>
-          )}
-          {(status === 'idle' || status === 'success') && (
+          ) : (
             <>
               <ShieldCheck size={20} />
               <span>Execute Zero-Gas Transfer ({quotedTokenFee} {selectedFeeToken})</span>
@@ -252,14 +350,20 @@ export const FeeRouter: React.FC<FeeRouterProps> = ({ wallet, onIntentExecuted }
               <CheckCircle2 size={18} />
               <span>Transaction Settled Gasless!</span>
             </div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-              <div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Intent Hash: </span>
-                <span className="mono-tag">{latestTx.intentHash.slice(0, 12)}...</span>
+                <span className="mono-tag">{latestTx.intentHash.slice(0, 16)}...</span>
+                <button className={`copy-btn ${copiedField === 'intent' ? 'copied' : ''}`} onClick={() => copyToClipboard(latestTx.intentHash, 'intent')}>
+                  {copiedField === 'intent' ? <Check size={10} /> : <Copy size={10} />}
+                </button>
               </div>
-              <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Preprod Tx: </span>
-                <span className="mono-tag" style={{ color: '#38bdf8' }}>{latestTx.txHash?.slice(0, 12)}...</span>
+                <span className="mono-tag" style={{ color: '#38bdf8' }}>{latestTx.txHash?.slice(0, 16)}...</span>
+                <button className={`copy-btn ${copiedField === 'tx' ? 'copied' : ''}`} onClick={() => copyToClipboard(latestTx.txHash || '', 'tx')}>
+                  {copiedField === 'tx' ? <Check size={10} /> : <Copy size={10} />}
+                </button>
               </div>
               <div>
                 <span style={{ color: 'var(--text-muted)' }}>ZK Proof: </span>
