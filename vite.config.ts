@@ -1,15 +1,23 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import wasm from 'vite-plugin-wasm';
+import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    nodePolyfills({
+      globals: {
+        Buffer: true,
+        global: true,
+        process: true
+      },
+      protocolImports: true
+    }),
+    react(),
+    wasm()
+  ],
   build: {
-    rollupOptions: {
-      external: [
-        '@midnight-ntwrk/dapp-connector-api',
-        '@midnight-ntwrk/midnight-js-network-provider'
-      ]
-    }
+    target: 'esnext'
   },
   server: {
     port: 3000,

@@ -1,27 +1,3 @@
-declare module '@midnight-ntwrk/dapp-connector-api' {
-  export interface ServiceUriConfig {
-    indexerUri: string;
-    nodeUri: string;
-    proofServerUri: string;
-  }
-
-  export interface WalletState {
-    address: string;
-    shieldedAddress: string;
-    balanceDust: bigint;
-    balanceNight: bigint;
-    networkId: string;
-  }
-
-  export interface DAppConnectorAPI {
-    state(): Promise<WalletState>;
-    signTransaction(tx: unknown): Promise<string>;
-    submitTransaction(signedTx: unknown): Promise<{ txHash: string }>;
-    disconnect(): Promise<void>;
-    apiVersion: string;
-  }
-}
-
 declare module '@midnight-ntwrk/midnight-js-network-provider' {
   export type NetworkId = string;
   export class NetworkProvider {
@@ -41,5 +17,9 @@ declare module '../managed/contract/index.js' {
     sponsorFeeIntent(witnesses: any, intentHash: string, maxFee: bigint): Promise<string>;
     [key: string]: any;
   };
+  export const contractInfo: {
+    name: string;
+    circuits: Array<{ name: string; [key: string]: any }>;
+    [key: string]: any;
+  };
 }
-
