@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { WalletState } from '../types';
-import { Shield, Key, RefreshCw, X, CheckCircle2, Lock, AlertTriangle, ExternalLink } from 'lucide-react';
+import { Shield, Key, RefreshCw, X, CheckCircle2, AlertTriangle, ExternalLink, Cpu, Copy, Check } from 'lucide-react';
 import {
   isLaceWalletInstalled,
   connectLaceWallet,
@@ -21,172 +21,225 @@ export const LaceWalletModal: React.FC<LaceWalletModalProps> = ({
   onClose,
   wallet,
   onConnect,
-  onDisconnect
+  onDisconnect,
 }) => {
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const handleConnect = async () => {
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(label);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  const handleConnectRealLace = async () => {
     setConnecting(true);
     setError(null);
 
-    // Attempt real Lace wallet connection via DApp connector API
-    if (isLaceWalletInstalled()) {
-      try {
-        const walletInfo = await connectLaceWallet();
-        onConnect(walletInfo);
-        setConnecting(false);
-        onClose();
-        return;
-      } catch (err: any) {
-        const message = err?.message || 'Connection failed';
-
-        if (message.includes('USER_REJECTED')) {
-          setError('Connection rejected. Please approve the connection request in your Lace wallet.');
-          setConnecting(false);
-          return;
-        }
-
-        if (message.includes('WALLET_NOT_INSTALLED')) {
-          setError('Lace wallet not detected. Please install the Lace browser extension.');
-          setConnecting(false);
-          return;
-        }
-
-        // For other errors, fall through to demo mode
-        console.warn('[Zandance] DApp connector error, falling back to demo mode:', message);
+    try {
+      if (!isLaceWalletInstalled()) {
+        throw new Error(
+          'WALLET_NOT_INSTALLED: Lace Midnight wallet extension was not detected. ' +
+            'Please install the Lace browser extension with Midnight support from https://www.lace.io.',
+        );
       }
-    } else {
-      console.warn('[Zandance] Lace wallet extension not detected. Using demo mode for development.');
-    }
 
-    // Fallback: demo mode for local development without Lace extension
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    onConnect(); // No walletInfo = use default demo state
-    setConnecting(false);
-    onClose();
+      // Calls window.midnight via official @midnight-ntwrk/dapp-connector-api
+      const walletInfo = await connectLaceWallet();
+      onConnect(walletInfo);
+      setConnecting(false);
+      onClose();
+    } catch (err: any) {
+      setConnecting(false);
+      const message = err?.message || 'Connection failed';
+
+      if (message.includes('USER_REJECTED')) {
+        setError('Connection rejected: The authorization request was cancelled or declined in Lace.');
+      } else if (message.includes('WALLET_NOT_INSTALLED')) {
+        setError('Lace wallet not detected in your browser. Install Lace or use the testnet simulator below.');
+      } else {
+        setError(`Wallet connection error: ${message}`);
+      }
+    }
+  };
+
+  const handleSimulateDevWallet = () => {
+    setError(null);
+    setConnecting(true);
+    setTimeout(() => {
+      // Deterministic simulated testnet keypair for sandbox testing
+      const simWallet: MidnightWalletInfo = {
+        address: '025c276e4ee2938b9ded19e9ae2e70181f97009f641b68bfe2f4ee6104ed0a5b',
+        shieldedAddress: '028a49c2d7f9911e389e0bfa7c36208a1834927b59e38dca167732a19283f982',
+        networkId: 'preprod',
+        balanceDust: 1000000,
+        balanceNight: 50000,
+      };
+      onConnect(simWallet);
+      setConnecting(false);
+      onClose();
+    }, 400);
   };
 
   const handleDisconnect = async () => {
     setError(null);
-
-    // Attempt real DApp connector disconnect
     try {
       await disconnectLaceWallet();
-    } catch {
-      // Silently handle – wallet may already be disconnected
+    } catch (err) {
+      console.warn('[Zandance] Disconnect error:', err);
     }
-
     onDisconnect();
     onClose();
   };
 
+  const hasLace = isLaceWalletInstalled();
+
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content cyber-glassmorphism" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <div style={{
-              width: '40px',
-              height: '40px',
+              width: '44px',
+              height: '44px',
               borderRadius: '12px',
-              background: 'linear-gradient(135deg, #7928ca, #38ef7d)',
+              background: 'linear-gradient(135deg, #7928ca 0%, #38ef7d 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '1.2rem'
+              fontSize: '1.4rem',
+              boxShadow: '0 0 20px rgba(121, 40, 202, 0.4)',
             }}>
               🌙
             </div>
             <div>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>Lace Midnight Wallet</h3>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Midnight Preprod Testnet Connector</p>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.02em' }}>Lace Midnight Wallet</h3>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                Official DApp Connector API · Midnight Preprod
+              </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+            style={{
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '8px',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              padding: '0.4rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
-        {/* Error Banner */}
+        {/* Error / Alert Banner */}
         {error && (
           <div style={{
-            background: 'rgba(244, 63, 94, 0.08)',
-            border: '1px solid rgba(244, 63, 94, 0.3)',
+            background: 'rgba(244, 63, 94, 0.1)',
+            border: '1px solid rgba(244, 63, 94, 0.35)',
             borderRadius: '12px',
-            padding: '0.85rem 1rem',
-            marginBottom: '1rem',
+            padding: '0.9rem 1rem',
+            marginBottom: '1.25rem',
             display: 'flex',
             alignItems: 'flex-start',
-            gap: '0.6rem'
+            gap: '0.65rem',
           }}>
-            <AlertTriangle size={18} color="#fb7185" style={{ flexShrink: 0, marginTop: '1px' }} />
-            <div style={{ fontSize: '0.82rem', color: '#fca5a5', lineHeight: 1.5 }}>
-              <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Connection Error</div>
+            <AlertTriangle size={18} color="#fb7185" style={{ flexShrink: 0, marginTop: '2px' }} />
+            <div style={{ fontSize: '0.82rem', color: '#fecdd3', lineHeight: 1.5 }}>
+              <div style={{ fontWeight: 600, marginBottom: '0.2rem', color: '#fda4af' }}>Connection Notice</div>
               <div>{error}</div>
-              {error.includes('install') && (
-                <a
-                  href="https://www.lace.io"
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: '#a855f7', marginTop: '0.4rem', textDecoration: 'none', fontWeight: 600 }}
-                >
-                  <span>Install Lace Wallet</span>
-                  <ExternalLink size={12} />
-                </a>
-              )}
+              <a
+                href="https://www.lace.io"
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                  color: '#c084fc',
+                  marginTop: '0.45rem',
+                  textDecoration: 'none',
+                  fontWeight: 600,
+                  fontSize: '0.8rem',
+                }}
+              >
+                <span>Get Lace Wallet Extension</span>
+                <ExternalLink size={12} />
+              </a>
             </div>
           </div>
         )}
 
         {wallet.isConnected ? (
           <div>
+            {/* Connected State */}
             <div style={{
               background: 'rgba(16, 185, 129, 0.08)',
-              border: '1px solid rgba(16, 185, 129, 0.25)',
+              border: '1px solid rgba(16, 185, 129, 0.3)',
               borderRadius: '12px',
-              padding: '1rem',
-              marginBottom: '1.25rem'
+              padding: '1.1rem',
+              marginBottom: '1.25rem',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10b981', fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                <CheckCircle2 size={18} />
-                <span>Connected to Midnight Preprod</span>
-              </div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                <div style={{ marginBottom: '0.3rem' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Public Address: </span>
-                  <span className="mono-tag">{wallet.address.slice(0, 10)}...{wallet.address.slice(-8)}</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10b981', fontWeight: 600, fontSize: '0.92rem' }}>
+                  <CheckCircle2 size={18} />
+                  <span>Connected to Midnight Preprod</span>
                 </div>
-                <div>
-                  <span style={{ color: 'var(--text-muted)' }}>Shielded (ZK) Key: </span>
-                  <span className="mono-tag" style={{ color: '#c084fc' }}>{wallet.shieldedAddress.slice(0, 10)}...{wallet.shieldedAddress.slice(-8)}</span>
+                <span className="mono-tag" style={{ fontSize: '0.72rem', borderColor: '#10b981' }}>ONLINE</span>
+              </div>
+
+              <div style={{ fontSize: '0.82rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Public Address:</span>
+                  <button
+                    onClick={() => copyToClipboard(wallet.address, 'addr')}
+                    style={{ background: 'transparent', border: 'none', color: '#f8fafc', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', fontFamily: 'var(--font-mono)' }}
+                  >
+                    <span>{wallet.address.slice(0, 10)}...{wallet.address.slice(-8)}</span>
+                    {copied === 'addr' ? <Check size={12} color="#10b981" /> : <Copy size={12} color="#94a3b8" />}
+                  </button>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Shielded (ZK) Key:</span>
+                  <button
+                    onClick={() => copyToClipboard(wallet.shieldedAddress, 'shielded')}
+                    style={{ background: 'transparent', border: 'none', color: '#c084fc', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', fontFamily: 'var(--font-mono)' }}
+                  >
+                    <span>{wallet.shieldedAddress.slice(0, 10)}...{wallet.shieldedAddress.slice(-8)}</span>
+                    {copied === 'shielded' ? <Check size={12} color="#10b981" /> : <Copy size={12} color="#94a3b8" />}
+                  </button>
                 </div>
               </div>
             </div>
 
+            {/* Balances Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.5rem' }}>
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>NIGHT Balance</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', marginTop: '0.2rem' }}>
+              <div style={{ background: 'rgba(0,0,0,0.35)', padding: '0.85rem', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>NIGHT Balance</div>
+                <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f8fafc' }}>
                   {wallet.nightBalance.toLocaleString()} <span style={{ fontSize: '0.75rem', color: '#a855f7' }}>NIGHT</span>
                 </div>
               </div>
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>DUST Energy</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#10b981', marginTop: '0.2rem' }}>
-                  {wallet.dustBalance.toLocaleString()} <span style={{ fontSize: '0.75rem' }}>DUST</span>
+              <div style={{ background: 'rgba(0,0,0,0.35)', padding: '0.85rem', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>DUST Gas Energy</div>
+                <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#10b981' }}>
+                  {wallet.dustBalance.toLocaleString()} <span style={{ fontSize: '0.75rem', color: '#34d399' }}>DUST</span>
                 </div>
               </div>
             </div>
 
             <button
               className="btn-secondary"
-              style={{ width: '100%', borderColor: 'rgba(244, 63, 94, 0.4)', color: '#fb7185' }}
+              style={{ width: '100%', borderColor: 'rgba(244, 63, 94, 0.4)', color: '#fb7185', padding: '0.8rem' }}
               onClick={handleDisconnect}
             >
               Disconnect Wallet
@@ -194,61 +247,85 @@ export const LaceWalletModal: React.FC<LaceWalletModalProps> = ({
           </div>
         ) : (
           <div>
+            {/* Auth Information Card */}
             <div style={{
               background: 'rgba(147, 51, 234, 0.08)',
               border: '1px solid rgba(147, 51, 234, 0.25)',
               borderRadius: '12px',
-              padding: '1.25rem',
-              marginBottom: '1.5rem'
+              padding: '1.1rem',
+              marginBottom: '1.25rem',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#c084fc', fontWeight: 600, fontSize: '0.92rem', marginBottom: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#c084fc', fontWeight: 600, fontSize: '0.92rem', marginBottom: '0.4rem' }}>
                 <Shield size={18} />
                 <span>Zero-Knowledge Multi-Asset Auth</span>
               </div>
-              <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                Connect your Lace wallet to prove private token ownership and authorize zero-knowledge DUST sponsorship intents.
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                Connect your Lace wallet to authenticate private witnesses off-chain and sponsor zero-gas cross-chain routes on Midnight Preprod.
               </p>
             </div>
 
-            {/* Wallet detection status */}
+            {/* Extension Detection Indicator */}
             <div style={{
               fontSize: '0.78rem',
-              color: isLaceWalletInstalled() ? '#10b981' : '#fbbf24',
+              color: hasLace ? '#10b981' : '#fbbf24',
               marginBottom: '1rem',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.4rem'
+              gap: '0.45rem',
+              padding: '0.5rem 0.75rem',
+              background: hasLace ? 'rgba(16, 185, 129, 0.06)' : 'rgba(251, 191, 36, 0.06)',
+              borderRadius: '8px',
+              border: `1px solid ${hasLace ? 'rgba(16, 185, 129, 0.2)' : 'rgba(251, 191, 36, 0.2)'}`,
             }}>
-              {isLaceWalletInstalled() ? (
+              {hasLace ? (
                 <>
-                  <CheckCircle2 size={14} />
-                  <span>Lace Midnight wallet detected</span>
+                  <CheckCircle2 size={14} color="#10b981" />
+                  <span>Lace Midnight extension detected (window.midnight)</span>
                 </>
               ) : (
                 <>
-                  <AlertTriangle size={14} />
-                  <span>Lace wallet not detected — will connect in demo mode</span>
+                  <AlertTriangle size={14} color="#fbbf24" />
+                  <span>Lace extension not installed — install from lace.io or test in simulator</span>
                 </>
               )}
             </div>
 
+            {/* Primary Action: Real Lace Connect */}
             <button
               className="btn-primary"
-              style={{ width: '100%', padding: '0.9rem' }}
-              onClick={handleConnect}
+              style={{ width: '100%', padding: '0.9rem', marginBottom: '0.75rem' }}
+              onClick={handleConnectRealLace}
               disabled={connecting}
             >
               {connecting ? (
                 <>
                   <RefreshCw className="spin" size={18} style={{ animation: 'spin 1s linear infinite' }} />
-                  <span>Connecting to Lace...</span>
+                  <span>Connecting to Lace Extension...</span>
                 </>
               ) : (
                 <>
                   <Key size={18} />
-                  <span>Connect Lace Wallet</span>
+                  <span>Connect Lace Extension</span>
                 </>
               )}
+            </button>
+
+            {/* Secondary Action: Sandbox Simulator */}
+            <button
+              className="btn-secondary"
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                fontSize: '0.82rem',
+                background: 'rgba(255, 255, 255, 0.03)',
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+                color: 'var(--text-secondary)',
+              }}
+              onClick={handleSimulateDevWallet}
+              disabled={connecting}
+            >
+              <Cpu size={15} />
+              <span>Launch Testnet Simulator (Dev Sandbox)</span>
             </button>
           </div>
         )}

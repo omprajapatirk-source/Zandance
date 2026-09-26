@@ -102,29 +102,49 @@ export async function connectLaceWallet(): Promise<MidnightWalletInfo> {
     }
 
     // Retrieve addresses & balances via standard ConnectedAPI methods
-    let address = '025c276e4ee2938b9ded19e9ae2e70181f97009f641b68bfe2f4ee6104ed0a5b';
-    let shieldedAddress = '028a49c2d7f9911e389e0bfa7c36208a1834927b59e38dca167732a19283f982';
-    let balanceDust = 1000000;
-    let balanceNight = 50000;
+    let address = '';
+    let shieldedAddress = '';
+    let balanceDust = 0;
+    let balanceNight = 0;
 
     if (typeof connectedApi.getUnshieldedAddress === 'function') {
-      const res = await connectedApi.getUnshieldedAddress();
-      if (res?.unshieldedAddress) address = res.unshieldedAddress;
+      try {
+        const res = await connectedApi.getUnshieldedAddress();
+        if (res?.unshieldedAddress) address = res.unshieldedAddress;
+      } catch (e) {
+        console.warn('[Zandance] getUnshieldedAddress:', e);
+      }
     }
     if (typeof connectedApi.getShieldedAddresses === 'function') {
-      const res = await connectedApi.getShieldedAddresses();
-      if (res?.shieldedAddress) shieldedAddress = res.shieldedAddress;
+      try {
+        const res = await connectedApi.getShieldedAddresses();
+        if (res?.shieldedAddress) shieldedAddress = res.shieldedAddress;
+      } catch (e) {
+        console.warn('[Zandance] getShieldedAddresses:', e);
+      }
     }
     if (typeof connectedApi.getDustBalance === 'function') {
-      const res = await connectedApi.getDustBalance();
-      if (res?.balance !== undefined) balanceDust = Number(res.balance);
+      try {
+        const res = await connectedApi.getDustBalance();
+        if (res?.balance !== undefined) balanceDust = Number(res.balance);
+      } catch (e) {
+        console.warn('[Zandance] getDustBalance:', e);
+      }
     }
     if (typeof (connectedApi as any).state === 'function') {
-      const state = await (connectedApi as any).state();
-      if (state?.address) address = state.address;
-      if (state?.shieldedAddress) shieldedAddress = state.shieldedAddress;
-      if (state?.balanceDust) balanceDust = Number(state.balanceDust);
-      if (state?.balanceNight) balanceNight = Number(state.balanceNight);
+      try {
+        const state = await (connectedApi as any).state();
+        if (state?.address) address = address || state.address;
+        if (state?.shieldedAddress) shieldedAddress = shieldedAddress || state.shieldedAddress;
+        if (state?.balanceDust !== undefined) balanceDust = balanceDust || Number(state.balanceDust);
+        if (state?.balanceNight !== undefined) balanceNight = balanceNight || Number(state.balanceNight);
+      } catch (e) {
+        console.warn('[Zandance] state():', e);
+      }
+    }
+
+    if (!address && !shieldedAddress) {
+      throw new Error('WALLET_CONNECTION_FAILED: No active Midnight accounts detected in Lace wallet.');
     }
 
     return {
