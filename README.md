@@ -6,7 +6,7 @@
 [![Midnight Network](https://img.shields.io/badge/Midnight-Preprod%20Verified-7928ca.svg)](https://preprod.midnight.network/contract/02c16f00430277712f9470c4b4cc5ed31f3c3e6dab6bb815d50c4a82cca607ec)
 [![Official X](https://img.shields.io/badge/X%20(Twitter)-%40ZandanceFi-000000.svg?logo=x)](https://x.com/ZandanceFi)
 [![Language](https://img.shields.io/badge/Smart%20Contracts-Compact%20v0.24-0070f3.svg)](https://docs.midnight.network)
-[![Tests](https://img.shields.io/badge/Tests-8%20Passed-10b981.svg)](tests/zandance_router.test.ts)
+[![Tests](https://img.shields.io/badge/Tests-11%20Passed-10b981.svg)](tests/zandance_router.test.ts)
 [![Preprod Users](https://img.shields.io/badge/Preprod%20Users-70%20Verified-0ea5e9.svg)](docs/PREPROD_TESTNET_USERS_70.md)
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-zandance.vercel.app-38bdf8.svg)](https://zandance.vercel.app)
 
@@ -152,7 +152,7 @@ Open your browser at `http://localhost:3000` to interact with the Lace Wallet co
 
 ### Level 1 — New Moon Submission Checklist
 - [x] Toolchain installed & Compact contract compiles via `npm run compact:compile`
-- [x] Passing test suite (`npm test` — 8 passing tests)
+- [x] Passing test suite (`npm test` — 11 passing tests)
 - [x] Generated `managed/` directory present (circuits + keys + contract metadata)
 - [x] Contract deployed to Preprod with visible address (`02c16f00...07ec`)
 - [x] Initial product idea (1 short paragraph) drafted in README
@@ -169,7 +169,7 @@ Open your browser at `http://localhost:3000` to interact with the Lace Wallet co
 
 ### Level 3 — Full Moon / Full dApp Submission Checklist
 - [x] Fully functional dApp meaningfully using Midnight's privacy model
-- [x] 8+ automated tests passing (minimum 3 required)
+- [x] 11 automated tests passing (minimum 3 required)
 - [x] CI/CD pipeline running (`.github/workflows/ci.yml`)
 - [x] README "privacy model" section: what an observer can and cannot learn
 - [x] Minimum 10+ meaningful commits

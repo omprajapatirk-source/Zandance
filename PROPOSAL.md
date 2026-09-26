@@ -93,7 +93,7 @@ intentCommitments.insert(disclose(intentHash), disclose(maxFee));
 
 - ✅ 7 compiled Compact circuits with ZKIR, prover/verifier keys
 - ✅ Deployed to Preprod with verifiable contract address
-- ✅ 8 passing automated tests covering circuit logic, state transitions, and privacy
+- ✅ 11 passing automated tests covering circuit logic, state transitions, and privacy
 - ✅ CI/CD pipeline (GitHub Actions)
 - ✅ Lace wallet integration via DApp connector API
 - ✅ Frontend circuit calls using compiled contract runtime
