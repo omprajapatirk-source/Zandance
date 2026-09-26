@@ -81,6 +81,7 @@ export const FeeRouter: React.FC<FeeRouterProps> = ({ wallet, onIntentExecuted }
     setCircuitError(null);
     setStatus('step0');
 
+    // Assemble off-chain private witnesses
     const senderSecret = wallet.shieldedAddress || wallet.address;
     const intentPayload = JSON.stringify({
       sourceChain,
@@ -91,11 +92,13 @@ export const FeeRouter: React.FC<FeeRouterProps> = ({ wallet, onIntentExecuted }
       feeToken: selectedFeeToken,
       nonce: Date.now(),
     });
-    const shieldedBalance = BigInt(wallet.dustBalance || 420000);
+    const shieldedBalance = BigInt(wallet.dustBalance || 1000000);
     const maxFee = BigInt(requiredDust);
 
+    await new Promise((resolve) => setTimeout(resolve, 250));
     setStatus('step1');
 
+    // Execute compiled Compact circuit runtime with client-side witness evaluation
     let circuitResult: CircuitCallResult;
     try {
       circuitResult = await callSponsorFeeIntent({
@@ -105,38 +108,34 @@ export const FeeRouter: React.FC<FeeRouterProps> = ({ wallet, onIntentExecuted }
         maxFee,
       });
     } catch (err: any) {
-      console.error('[FeeRouter] Circuit call failed:', err);
-      setCircuitError(err?.message || 'Circuit execution failed');
-      circuitResult = {
-        intentHash: '0x' + Array.from(crypto.getRandomValues(new Uint8Array(32))).map(b => b.toString(16).padStart(2, '0')).join(''),
-        txHash: '0x' + Array.from(crypto.getRandomValues(new Uint8Array(32))).map(b => b.toString(16).padStart(2, '0')).join(''),
-        proofHex: '0xproof_preprod_mock_zk_02c16f',
-        dustSpent: requiredDust,
-      };
+      console.error('[FeeRouter] Compact circuit execution failed:', err);
+      setCircuitError(err?.message || 'Compact circuit execution failed');
+      setStatus('idle');
+      return;
     }
 
     setStatus('step2');
+    await new Promise((resolve) => setTimeout(resolve, 350));
 
-    setTimeout(() => {
-      const intentRecord: GaslessIntent = {
-        id: `intent_${Date.now()}`,
-        sourceChain,
-        targetChain,
-        asset: 'USDC',
-        amount: parseFloat(transferAmount),
-        feeToken: selectedFeeToken,
-        quotedFee: parseFloat(quotedTokenFee),
-        dustEquivalent: requiredDust,
-        status: 'settled',
-        intentHash: circuitResult.intentHash,
-        txHash: circuitResult.txHash,
-        timestamp: Date.now(),
-      };
+    const intentRecord: GaslessIntent = {
+      id: `intent_${Date.now()}`,
+      sourceChain,
+      targetChain,
+      asset: 'USDC',
+      amount: parseFloat(transferAmount),
+      feeToken: selectedFeeToken,
+      quotedFee: parseFloat(quotedTokenFee),
+      dustEquivalent: requiredDust,
+      status: 'settled',
+      intentHash: circuitResult.intentHash,
+      txHash: circuitResult.txHash,
+      proofHex: circuitResult.proofHex,
+      timestamp: Date.now(),
+    };
 
-      setLatestTx(intentRecord);
-      setStatus('success');
-      onIntentExecuted(intentRecord);
-    }, 900);
+    setLatestTx(intentRecord);
+    setStatus('success');
+    onIntentExecuted(intentRecord);
   };
 
   return (
@@ -371,6 +370,16 @@ export const FeeRouter: React.FC<FeeRouterProps> = ({ wallet, onIntentExecuted }
                   {copiedField === 'intent' ? <Check size={12} color="#ccff00" /> : <Copy size={12} />}
                 </button>
               </div>
+
+              {latestTx.proofHex && (
+                <div className="field-row">
+                  <span className="text-muted">ZK Proof:</span>
+                  <span className="field-val text-purple">{latestTx.proofHex.slice(0, 16)}...</span>
+                  <button onClick={() => copyToClipboard(latestTx.proofHex || '', 'proof')} className="copy-btn">
+                    {copiedField === 'proof' ? <Check size={12} color="#ccff00" /> : <Copy size={12} />}
+                  </button>
+                </div>
+              )}
 
               <div className="field-row">
                 <span className="text-muted">Tx Hash:</span>
