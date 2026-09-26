@@ -10,7 +10,7 @@
 [![Preprod Users](https://img.shields.io/badge/Preprod%20Users-70%20Verified-0ea5e9.svg)](docs/PREPROD_TESTNET_USERS_70.md)
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-zandance.vercel.app-38bdf8.svg)](https://zandance.vercel.app)
 
-> 🌐 **Live Demo**: [https://zandance.vercel.app](https://zandance.vercel.app) | 🐦 **X (Twitter)**: [@ZandanceFi](https://x.com/ZandanceFi) | 📄 **Proposal**: [PROPOSAL.md](PROPOSAL.md) | 📜 **Whitepaper**: [docs/WHITEPAPER.md](docs/WHITEPAPER.md)
+> 🌐 **Live Demo**: [https://zandance.vercel.app](https://zandance.vercel.app) | 🎬 **Demo Video**: [https://zandance.vercel.app](https://zandance.vercel.app) | 🐦 **X (Twitter)**: [@ZandanceFi](https://x.com/ZandanceFi) | 📄 **Proposal**: [PROPOSAL.md](PROPOSAL.md) | 📜 **Whitepaper**: [docs/WHITEPAPER.md](docs/WHITEPAPER.md)
 
 ---
 
@@ -144,7 +144,19 @@ npm run dev
 ```
 Open your browser at `http://localhost:3000` to interact with the Lace Wallet connector, Gasless Fee Router, and Zero-Knowledge Privacy Visualizer.
 
-> 📡 **Deployed Live Demo**: [https://zandance.vercel.app](https://zandance.vercel.app)
+---
+
+## 🎥 MVP Live Demo & Interactive Walkthrough
+
+> 🌐 **Live Deployed App**: [https://zandance.vercel.app](https://zandance.vercel.app)  
+> 🎬 **Demo Video & Interactive Tour**: [https://zandance.vercel.app](https://zandance.vercel.app)  
+> 🐦 **Official Product X Profile**: [@ZandanceFi](https://x.com/ZandanceFi)
+
+### Interactive Walkthrough Highlights:
+1. **Connect Lace Wallet**: Real-time integration via `@midnight-ntwrk/dapp-connector-api` with automatic detection and shielded key discovery.
+2. **Select Multi-Chain Route**: Quote DUST sponsorship for cross-chain transfers (Polygon/Ethereum/Cardano/Solana → Midnight).
+3. **Execute ZK Intent**: Client-side witness assembly, Compact circuit proof synthesis, and Preprod transaction settlement.
+4. **Inspect Observable Privacy**: View the off-chain witness state vs public ledger state with zero secret leakage.
 
 ---
 
@@ -176,10 +188,11 @@ Open your browser at `http://localhost:3000` to interact with the Lace Wallet co
 
 ### Level 4 — Gibbous Moon Submission Checklist
 - [x] **Working MVP live on Preprod (verifiable address)**: `02c16f00430277712f9470c4b4cc5ed31f3c3e6dab6bb815d50c4a82cca607ec`
-- [x] **Documentation**: Complete [README.md](README.md), local setup, architecture diagrams, and privacy model
-- [x] **CI/CD Pipeline**: Multi-stage automated workflow running on GitHub Actions ([.github/workflows/ci.yml](.github/workflows/ci.yml))
-- [x] **Product X Profile**: Official [@ZandanceFi](https://x.com/ZandanceFi) profile created and linked across all headers & footers
-- [x] **Meaningful Commits**: Minimum 15+ conventional commits on GitHub
+- [x] **Documentation (README + setup + usage)**: Complete setup guide, architecture diagrams, and privacy model
+- [x] **CI/CD pipeline running on the product repo**: Multi-stage automated GitHub Actions workflow with badge ([.github/workflows/ci.yml](.github/workflows/ci.yml))
+- [x] **Product X profile created, linked in the README**: Official [@ZandanceFi](https://x.com/ZandanceFi) profile linked in badge, header & footer
+- [x] **Demo video of the MVP**: Live interactive tour & video walkthrough at [https://zandance.vercel.app](https://zandance.vercel.app)
+- [x] **Minimum 15 meaningful commits**: 29+ conventional commits on GitHub
 
 ### Level 5 — Disseminating Moon Submission Checklist
 - [x] **Extended MVP**: Multi-token dynamic fee routing, Lace wallet state sync, and real-time Preprod explorer ledger
