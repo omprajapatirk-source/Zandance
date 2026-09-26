@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { PoolStats, WalletState } from '../types';
-import { Flame, Droplets, TrendingUp, ShieldAlert, Award, Clock, Activity } from 'lucide-react';
+import { Flame, Droplets, TrendingUp, ShieldAlert, Award, Clock, Activity, Zap, PlusCircle, Sliders } from 'lucide-react';
+import { CyberCard3D } from './CyberCard3D';
 
 interface PoolManagerProps {
   stats: PoolStats;
@@ -17,179 +18,201 @@ export const PoolManager: React.FC<PoolManagerProps> = ({
 }) => {
   const [depositAmount, setDepositAmount] = useState('500000');
   const [decaySimAmount, setDecaySimAmount] = useState('50000');
+  const [decayLambda, setDecayLambda] = useState('0.05');
 
-  // Calculate pool health percentage (max capacity = 1 billion DUST)
   const maxCapacity = 1_000_000_000;
   const healthPercent = Math.min(100, (stats.reserveDust / maxCapacity) * 100);
   const isLow = healthPercent < 25;
 
-  // Generate epoch decay timeline data
+  // Epoch decay curve bars
   const epochTimeline = useMemo(() => {
-    const epochs: { epoch: number; height: number }[] = [];
-    const baseHeight = 85;
-    for (let i = 0; i < Math.min(stats.currentEpoch, 12); i++) {
-      const decay = Math.pow(0.92, i); // 8% decay per epoch
+    const epochs: { epoch: number; height: number; dustVal: number }[] = [];
+    const baseHeight = 90;
+    const lambdaNum = parseFloat(decayLambda) || 0.05;
+
+    for (let i = 0; i < 10; i++) {
+      const decayFactor = Math.exp(-lambdaNum * i);
+      const dustVal = Math.round(stats.reserveDust * decayFactor);
       epochs.push({
-        epoch: stats.currentEpoch - (Math.min(stats.currentEpoch, 12) - 1 - i),
-        height: baseHeight * decay
+        epoch: stats.currentEpoch + i,
+        height: Math.max(15, baseHeight * decayFactor),
+        dustVal,
       });
     }
     return epochs;
-  }, [stats.currentEpoch]);
+  }, [stats.currentEpoch, stats.reserveDust, decayLambda]);
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-      {/* Pool Health & Capacity Card */}
-      <div className="glass-card">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <Droplets size={22} color="#10b981" />
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>DUST Liquidity Pool</h2>
+    <div className="tab-panel pool-grid-layout">
+      {/* Left Card: DUST Liquidity Pool Core */}
+      <CyberCard3D glowColor="lime" className="pool-card-main">
+        <div className="card-header-flex">
+          <div>
+            <div className="tech-badge-lime">
+              <Droplets size={13} />
+              <span>STAKED NIGHT LIQUIDITY</span>
+            </div>
+            <h2 className="tech-title">DUST Sponsorship Pool Engine</h2>
+            <p className="tech-subtitle">
+              Non-transferable DUST generated from NIGHT staking is pooled to front cross-chain gasless execution.
+            </p>
           </div>
-          <span className="network-badge" style={{ background: 'rgba(147, 51, 234, 0.12)', borderColor: 'rgba(147, 51, 234, 0.3)', color: '#c084fc' }}>
-            Epoch #{stats.currentEpoch}
+
+          <span className="epoch-pill font-mono">
+            <Clock size={12} className="neon-purple" />
+            <span>EPOCH #{stats.currentEpoch}</span>
           </span>
         </div>
 
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '1.25rem' }}>
-          Midnight's anti-speculation design generates non-transferable DUST from staked NIGHT. Zandance pools DUST capacity to sponsor user cross-chain fees automatically.
-        </p>
-
-        {/* DUST Pool Health Bar */}
-        <div style={{ marginBottom: '1.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem', fontSize: '0.8rem' }}>
-            <span style={{ color: 'var(--text-muted)' }}>Pool Health</span>
-            <span style={{ color: isLow ? '#f43f5e' : '#10b981', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
-              {healthPercent.toFixed(1)}%
+        {/* Holographic Health Gauge */}
+        <div className="pool-health-section">
+          <div className="gauge-header">
+            <span className="cyber-label">POOL CAPACITY &amp; SOLVENCY</span>
+            <span className="gauge-percent font-mono neon-lime">
+              {healthPercent.toFixed(1)}% SATURATED
             </span>
           </div>
-          <div className="decay-bar-container">
+
+          <div className="cyber-gauge-track">
             <div
-              className={`decay-bar-fill ${isLow ? 'low' : ''}`}
+              className={`cyber-gauge-fill ${isLow ? 'low' : ''}`}
               style={{ width: `${healthPercent}%` }}
             />
+            <div className="gauge-glow-point" style={{ left: `${healthPercent}%` }} />
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.3rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+
+          <div className="gauge-sub-row font-mono text-xs text-muted">
             <span>0 DUST</span>
-            <span>{maxCapacity.toLocaleString()} DUST (Max)</span>
+            <span>CAPACITY: 1,000,000,000 DUST</span>
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-          <div style={{ background: 'rgba(0,0,0,0.3)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Available DUST Reserve</div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#10b981', fontFamily: 'var(--font-mono)', marginTop: '0.25rem' }}>
+        {/* Dynamic Metric Boxes */}
+        <div className="pool-metric-boxes-grid">
+          <div className="pool-stat-box">
+            <div className="stat-box-label font-mono">ACTIVE DUST RESERVE</div>
+            <div className="stat-box-value font-mono neon-lime">
               {stats.reserveDust.toLocaleString()}
             </div>
-            <div style={{ fontSize: '0.72rem', color: '#6ee7b7', marginTop: '0.2rem' }}>~{(stats.reserveDust / 35000).toFixed(0)} Txs Sponsored</div>
+            <div className="stat-box-sub text-xs text-muted">
+              ~{(stats.reserveDust / 35000).toFixed(0)} Txs Buffer
+            </div>
           </div>
 
-          <div style={{ background: 'rgba(0,0,0,0.3)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Protocol Staked NIGHT</div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#c084fc', fontFamily: 'var(--font-mono)', marginTop: '0.25rem' }}>
+          <div className="pool-stat-box">
+            <div className="stat-box-label font-mono">PROTOCOL STAKED NIGHT</div>
+            <div className="stat-box-value font-mono neon-purple">
               {stats.stakedNight.toLocaleString()}
             </div>
-            <div style={{ fontSize: '0.72rem', color: '#d8b4fe', marginTop: '0.2rem' }}>+120k DUST/hour Yield</div>
+            <div className="stat-box-sub text-xs text-muted">
+              +120,000 DUST/hr Yield
+            </div>
           </div>
         </div>
 
-        {/* Deposit NIGHT Yield into Pool */}
-        <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
-          <label className="form-label">Stake Rewards DUST Deposit (from NIGHT yield)</label>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+        {/* Deposit NIGHT Staking Yield Form */}
+        <div className="cyber-input-box pool-deposit-box">
+          <label className="cyber-label">DEPOSIT NIGHT STAKING YIELD (DUST)</label>
+          <div className="deposit-input-flex">
             <input
               type="number"
-              className="form-input"
               value={depositAmount}
               onChange={(e) => setDepositAmount(e.target.value)}
-              placeholder="Amount"
+              className="cyber-amount-input font-mono"
+              placeholder="500000"
             />
             <button
-              className="btn-primary"
-              style={{ whiteSpace: 'nowrap' }}
               onClick={() => onDepositDust(parseFloat(depositAmount) || 0)}
+              className="cyber-mini-btn"
             >
-              Deposit DUST
+              <PlusCircle size={16} />
+              <span>DEPOSIT</span>
             </button>
           </div>
         </div>
-      </div>
+      </CyberCard3D>
 
-      {/* DUST Decay Mechanics & Relayer Status */}
-      <div className="glass-card">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <Flame size={22} color="#f43f5e" />
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>DUST Decay & Relayer Engine</h2>
+      {/* Right Card: Exponential Decay Curve Simulator */}
+      <CyberCard3D glowColor="purple" className="pool-card-decay">
+        <div className="card-header-flex">
+          <div>
+            <div className="tech-badge-magenta">
+              <Flame size={13} />
+              <span>MIDNIGHT HALF-LIFE</span>
+            </div>
+            <h3 className="tech-title-sm">Exponential Decay Curve: R(t) = R₀ · e^(-λt)</h3>
           </div>
-          <span className="network-badge" style={{ color: '#fb7185', background: 'rgba(244, 63, 94, 0.12)', borderColor: 'rgba(244, 63, 94, 0.3)' }}>
-            <Clock size={12} />
-            <span>Decaying Asset</span>
-          </span>
+          <div className="decay-equation-tag font-mono text-xs">
+            λ = {decayLambda}
+          </div>
         </div>
 
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '1.25rem' }}>
-          DUST naturally decays over time. Zandance continuously routes intents to avoid capacity waste and rebalances stale epochs via Compact circuits.
-        </p>
-
-        {/* Epoch Decay Timeline Chart */}
-        <div style={{ background: 'rgba(0,0,0,0.3)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-subtle)', marginBottom: '1.25rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            <Activity size={14} />
-            <span>DUST Reserve Across Epochs</span>
-          </div>
-          <div className="epoch-timeline">
-            {epochTimeline.map((ep, i) => (
-              <div
-                key={ep.epoch}
-                className={`epoch-bar ${i === epochTimeline.length - 1 ? 'current' : ''}`}
-                style={{ height: `${ep.height}%` }}
-                title={`Epoch #${ep.epoch}`}
-              />
+        {/* Decay Simulation Interactive Histogram */}
+        <div className="decay-histogram-box">
+          <div className="histogram-bars-wrapper">
+            {epochTimeline.map((item, idx) => (
+              <div key={idx} className="hist-col">
+                <div className="hist-val-tooltip font-mono">
+                  {(item.dustVal / 1000).toFixed(0)}k
+                </div>
+                <div
+                  className="hist-bar"
+                  style={{
+                    height: `${item.height}%`,
+                    background:
+                      idx === 0
+                        ? 'linear-gradient(180deg, #ccff00, #10b981)'
+                        : 'linear-gradient(180deg, #9d4edd, #6366f1)',
+                  }}
+                />
+                <span className="hist-label font-mono">E{item.epoch}</span>
+              </div>
             ))}
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
-            <span>Epoch #{epochTimeline[0]?.epoch || 1}</span>
-            <span>Epoch #{stats.currentEpoch} (current)</span>
-          </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem', fontSize: '0.85rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0.75rem', background: 'rgba(0,0,0,0.3)', borderRadius: '8px' }}>
-            <span style={{ color: 'var(--text-secondary)' }}>Active Solver Relayers</span>
-            <span style={{ fontWeight: 700, color: '#38bdf8' }}>{stats.activeRelayers} Online (EVM, Midnight, Solana)</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0.75rem', background: 'rgba(0,0,0,0.3)', borderRadius: '8px' }}>
-            <span style={{ color: 'var(--text-secondary)' }}>Total Sponsored Transactions</span>
-            <span style={{ fontWeight: 700, color: '#f8fafc', fontFamily: 'var(--font-mono)' }}>{stats.totalSponsoredTxs.toLocaleString()}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0.75rem', background: 'rgba(0,0,0,0.3)', borderRadius: '8px' }}>
-            <span style={{ color: 'var(--text-secondary)' }}>Cumulative DUST Sponsored</span>
-            <span style={{ fontWeight: 700, color: '#10b981', fontFamily: 'var(--font-mono)' }}>{stats.totalDustSponsored.toLocaleString()} DUST</span>
-          </div>
-        </div>
-
-        {/* Decay Simulation Button */}
-        <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
-          <label className="form-label">Simulate Midnight Epoch Decay</label>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+        {/* Decay Simulator Interactive Controls */}
+        <div className="decay-controls-box">
+          <div className="decay-slider-row">
+            <div className="slider-label-flex">
+              <span className="cyber-label">DECAY COEFFICIENT (λ)</span>
+              <span className="font-mono text-cyan text-xs">{decayLambda} / epoch</span>
+            </div>
             <input
-              type="number"
-              className="form-input"
-              value={decaySimAmount}
-              onChange={(e) => setDecaySimAmount(e.target.value)}
-              placeholder="Decay Amount"
+              type="range"
+              min="0.01"
+              max="0.15"
+              step="0.01"
+              value={decayLambda}
+              onChange={(e) => setDecayLambda(e.target.value)}
+              className="cyber-range-slider"
             />
+          </div>
+
+          <div className="simulate-action-row">
+            <div className="cyber-input-box flex-1">
+              <label className="cyber-label">EPOCH DECAY AMOUNT</label>
+              <input
+                type="number"
+                value={decaySimAmount}
+                onChange={(e) => setDecaySimAmount(e.target.value)}
+                className="cyber-text-input font-mono"
+              />
+            </div>
             <button
-              className="btn-secondary"
-              style={{ whiteSpace: 'nowrap', borderColor: 'rgba(244, 63, 94, 0.3)', color: '#fb7185' }}
               onClick={() => onSimulateDecay(parseFloat(decaySimAmount) || 0)}
+              className="cyber-decay-trigger-btn"
             >
-              Apply Epoch Decay
+              <Flame size={16} />
+              <span>APPLY DECAY</span>
             </button>
           </div>
         </div>
-      </div>
+
+        <div className="decay-formula-footer font-mono text-xs text-muted">
+          Midnight Network periodically applies DUST decay to discourage token hoarding and maintain steady gas liquidity.
+        </div>
+      </CyberCard3D>
     </div>
   );
 };

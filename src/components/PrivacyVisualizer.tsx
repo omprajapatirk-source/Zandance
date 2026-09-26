@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, ShieldCheck, Lock, Unlock, Zap, Terminal } from 'lucide-react';
+import { Eye, EyeOff, ShieldCheck, Lock, Unlock, Zap, Terminal, Code2, Cpu, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { GaslessIntent } from '../types';
+import { CyberCard3D } from './CyberCard3D';
 
 interface PrivacyVisualizerProps {
   latestIntent: GaslessIntent | null;
 }
 
 export const PrivacyVisualizer: React.FC<PrivacyVisualizerProps> = ({ latestIntent }) => {
-  const [activeTab, setActiveTab] = useState<'side-by-side' | 'circuit-trace' | 'compact-code'>('side-by-side');
+  const [activeView, setActiveView] = useState<'matrix' | 'zkir-bytecode' | 'compact-spec'>('matrix');
 
   const demoIntent = latestIntent || {
     id: 'int_demo_77',
@@ -17,7 +18,7 @@ export const PrivacyVisualizer: React.FC<PrivacyVisualizerProps> = ({ latestInte
     feeToken: 'USDC',
     quotedFee: 1.4,
     dustEquivalent: 35000,
-    amount: 100,
+    amount: 150,
     sourceChain: 'polygon',
     targetChain: 'midnight-preprod',
     status: 'settled',
@@ -25,139 +26,224 @@ export const PrivacyVisualizer: React.FC<PrivacyVisualizerProps> = ({ latestInte
   };
 
   return (
-    <div className="glass-card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#c084fc', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.2rem' }}>
-            <ShieldCheck size={16} />
-            <span>Midnight Privacy Model & Observable Privacy Behavior</span>
+    <div className="tab-panel privacy-matrix-layout">
+      {/* Top Header Card */}
+      <CyberCard3D glowColor="cyan" className="privacy-header-card">
+        <div className="privacy-header-flex">
+          <div>
+            <div className="tech-badge-cyan">
+              <ShieldCheck size={13} />
+              <span>CRYPTOGRAPHIC ENCLAVE</span>
+            </div>
+            <h2 className="tech-title">Observable Privacy & ZK Circuit Inspector</h2>
+            <p className="tech-subtitle">
+              Verify the strict mathematical boundary between off-chain private witnesses and public ledger commitments.
+            </p>
           </div>
-          <h2 style={{ fontSize: '1.35rem', fontWeight: 700 }}>Zero-Knowledge Privacy Inspector</h2>
-        </div>
 
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button
-            className={`tab-button ${activeTab === 'side-by-side' ? 'active' : ''}`}
-            onClick={() => setActiveTab('side-by-side')}
-          >
-            Public vs Shielded View
-          </button>
-          <button
-            className={`tab-button ${activeTab === 'circuit-trace' ? 'active' : ''}`}
-            onClick={() => setActiveTab('circuit-trace')}
-          >
-            Circuit Execution Trace
-          </button>
-          <button
-            className={`tab-button ${activeTab === 'compact-code' ? 'active' : ''}`}
-            onClick={() => setActiveTab('compact-code')}
-          >
-            Compact Contract Rules
-          </button>
+          {/* View Mode Selector Tabs */}
+          <div className="privacy-mode-tabs">
+            <button
+              onClick={() => setActiveView('matrix')}
+              className={`mode-btn ${activeView === 'matrix' ? 'active' : ''}`}
+            >
+              <Eye size={14} />
+              <span>DUAL MATRIX VIEW</span>
+            </button>
+            <button
+              onClick={() => setActiveView('zkir-bytecode')}
+              className={`mode-btn ${activeView === 'zkir-bytecode' ? 'active' : ''}`}
+            >
+              <Cpu size={14} />
+              <span>ZKIR BYTECODE</span>
+            </button>
+            <button
+              onClick={() => setActiveView('compact-spec')}
+              className={`mode-btn ${activeView === 'compact-spec' ? 'active' : ''}`}
+            >
+              <Code2 size={14} />
+              <span>COMPACT DISCLOSE()</span>
+            </button>
+          </div>
         </div>
-      </div>
+      </CyberCard3D>
 
-      {activeTab === 'side-by-side' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-          {/* Public Ledger Column */}
-          <div style={{ background: 'rgba(15, 23, 42, 0.6)', borderRadius: '14px', border: '1px solid var(--border-subtle)', padding: '1.25rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#38bdf8', fontWeight: 700, fontSize: '0.95rem', marginBottom: '1rem' }}>
-              <Eye size={18} />
-              <span>What an Observer Sees (Public Ledger)</span>
+      {/* Main Dual Matrix Visualizer */}
+      {activeView === 'matrix' && (
+        <div className="dual-matrix-grid">
+          {/* Left Enclave: Private Witness (RAM Only) */}
+          <CyberCard3D glowColor="purple" className="matrix-col private-col">
+            <div className="matrix-col-header">
+              <div className="header-tag-shielded">
+                <Lock size={14} className="neon-magenta" />
+                <span>OFF-CHAIN PRIVATE WITNESS (BROWSER RAM)</span>
+              </div>
+              <div className="status-indicator-green font-mono text-xs">ENCLAVE SECURE</div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', fontSize: '0.85rem' }}>
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: '0.2rem' }}>Intent Commitment Hash (Public)</div>
-                <div className="mono-tag" style={{ color: '#38bdf8', wordBreak: 'break-all' }}>
+            <div className="matrix-content-list">
+              <div className="matrix-data-card private">
+                <div className="data-card-label font-mono">1. SENDER SECRET KEY [getSenderSecret()]</div>
+                <div className="data-card-val font-mono text-magenta">
+                  0x7f4e91...8c201a (MASKED IN RAM · ZERO LEAKAGE)
+                </div>
+                <div className="data-card-sub text-muted text-xs">
+                  Evaluated inside client WASM PLONK constraints. Never transmitted over HTTP or RPC.
+                </div>
+              </div>
+
+              <div className="matrix-data-card private">
+                <div className="data-card-label font-mono">2. SHIELDED ASSET BALANCE [getShieldedBalance()]</div>
+                <div className="data-card-val font-mono text-magenta">
+                  420,000 DUST EQUIV (CONFIDENTIAL)
+                </div>
+                <div className="data-card-sub text-muted text-xs">
+                  Proves (Shielded Balance &gt;= Required Fee) without revealing total wallet holdings.
+                </div>
+              </div>
+
+              <div className="matrix-data-card private">
+                <div className="data-card-label font-mono">3. CONFIDENTIAL INTENT PAYLOAD [getIntentPayload()]</div>
+                <div className="data-card-val font-mono text-magenta">
+                  &#123; asset: &quot;USDC&quot;, amount: {demoIntent.amount}, recipient: &quot;0279...&quot; &#125;
+                </div>
+                <div className="data-card-sub text-muted text-xs">
+                  Transaction parameters are hashed locally with cryptographic salt.
+                </div>
+              </div>
+            </div>
+
+            <div className="matrix-guarantee-footer shield">
+              <ShieldCheck size={18} className="neon-magenta" />
+              <div>
+                <strong>Zero-Knowledge Boundary:</strong> No relayer or validator can decrypt these values.
+              </div>
+            </div>
+          </CyberCard3D>
+
+          {/* Central Photon Laser Beam */}
+          <div className="photon-bridge">
+            <div className="laser-beam" />
+            <div className="laser-emitter">
+              <Zap size={18} className="neon-lime blink" />
+              <span className="font-mono text-xs neon-lime">PLONK PROVE</span>
+            </div>
+            <div className="laser-beam" />
+          </div>
+
+          {/* Right Enclave: Public Ledger Commitments */}
+          <CyberCard3D glowColor="cyan" className="matrix-col public-col">
+            <div className="matrix-col-header">
+              <div className="header-tag-public">
+                <Eye size={14} className="neon-cyan" />
+                <span>ON-CHAIN PUBLIC LEDGER (MIDNIGHT PREPROD)</span>
+              </div>
+              <div className="status-indicator-blue font-mono text-xs">BLOCK #1428940</div>
+            </div>
+
+            <div className="matrix-content-list">
+              <div className="matrix-data-card public">
+                <div className="data-card-label font-mono">1. INTENT COMMITMENT HASH [disclose(intentHash)]</div>
+                <div className="data-card-val font-mono text-cyan break-all">
                   {demoIntent.intentHash}
                 </div>
+                <div className="data-card-sub text-muted text-xs">
+                  SHA-256 pre-image digest. Prevents front-running and parameter tampering.
+                </div>
               </div>
 
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: '0.2rem' }}>Committed DUST Gas Capacity</div>
-                <div style={{ color: '#10b981', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
+              <div className="matrix-data-card public">
+                <div className="data-card-label font-mono">2. DUST SPONSORSHIP CEILING [disclose(maxFee)]</div>
+                <div className="data-card-val font-mono text-lime">
                   {demoIntent.dustEquivalent.toLocaleString()} DUST
                 </div>
-              </div>
-
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: '0.2rem' }}>Zero-Knowledge SNARK Proof Status</div>
-                <div style={{ color: '#c084fc', fontWeight: 600 }}>
-                  VALID (Verified on Midnight Preprod via ZKIR)
+                <div className="data-card-sub text-muted text-xs">
+                  Publicly authorizes the maximum DUST amount deducted from the sponsorship pool.
                 </div>
               </div>
 
-              <div style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '0.75rem', borderRadius: '8px', color: '#fca5a5', fontSize: '0.78rem' }}>
-                <strong>🚫 Hidden from Observers:</strong> Sender identity, source token balances, and cross-chain payload parameters are <em>impossible</em> to decrypt from the ledger.
+              <div className="matrix-data-card public">
+                <div className="data-card-label font-mono">3. ON-CHAIN NULLIFIER RECORD [settledIntents]</div>
+                <div className="data-card-val font-mono text-lime">
+                  SETTLED = TRUE (REPLAY ATTACK REJECTED)
+                </div>
+                <div className="data-card-sub text-muted text-xs">
+                  Deterministic nullifier prevents any intent from being sponsored twice.
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Private Witness Column */}
-          <div style={{ background: 'rgba(15, 23, 42, 0.6)', borderRadius: '14px', border: '1px solid rgba(147, 51, 234, 0.3)', padding: '1.25rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#c084fc', fontWeight: 700, fontSize: '0.95rem', marginBottom: '1rem' }}>
-              <EyeOff size={18} />
-              <span>What Remains Shielded (Private Witness)</span>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', fontSize: '0.85rem' }}>
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: '0.2rem' }}>User Secret Key / Salt (Never Disclosed)</div>
-                <div className="mono-tag" style={{ color: '#f43f5e' }}>
-                  0x7f2081d09e... [PROTECTED BY CLIENT ZK PROVER]
-                </div>
-              </div>
-
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: '0.2rem' }}>Cross-Chain Shielded Payload (Witness Only)</div>
-                <div className="mono-tag" style={{ color: '#f59e0b' }}>
-                  Transfer 100 USDC to 0279fa9329e4...
-                </div>
-              </div>
-
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: '0.2rem' }}>Private Shielded Balance Verification</div>
-                <div style={{ color: '#34d399', fontWeight: 600 }}>
-                  Proven: Balance &gt;= 35,000 DUST Equivalent (Exact Balance Undisclosed)
-                </div>
-              </div>
-
-              <div style={{ background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)', padding: '0.75rem', borderRadius: '8px', color: '#6ee7b7', fontSize: '0.78rem' }}>
-                <strong>🛡️ Observable Privacy Invariant:</strong> The user proves they are authorized and have sufficient funds, without disclosing their address or transaction amount on public chains!
+            <div className="matrix-guarantee-footer public">
+              <CheckCircle2 size={18} className="neon-cyan" />
+              <div>
+                <strong>Public State:</strong> Verifiable by anyone on Midnight Preprod Explorer without revealing user privacy.
               </div>
             </div>
-          </div>
+          </CyberCard3D>
         </div>
       )}
 
-      {activeTab === 'circuit-trace' && (
-        <div className="code-box">
-          <div style={{ color: '#a855f7', fontWeight: 700, marginBottom: '0.5rem' }}>// Midnight Proof Server Execution Log: sponsorFeeIntent</div>
-          <div>[1] Fetching private witness values: getSenderSecret(), getIntentPayload(), getShieldedBalance()... OK</div>
-          <div>[2] Computing Pedersen commitment: H(payload, secret_salt) == {demoIntent.intentHash.slice(0, 24)}... OK</div>
-          <div>[3] Checking constraint: shieldedBalance &gt;= maxFee (35000 DUST)... OK</div>
-          <div>[4] Invoking deliberate disclose() on intentHash and maxFee for public ledger insertion... OK</div>
-          <div>[5] Generating SNARK proof with zkir/sponsorFeeIntent.zkir and keys/sponsorFeeIntent.prover... OK</div>
-          <div style={{ color: '#34d399', marginTop: '0.5rem' }}>✔ Proof verification succeeded on Midnight Preprod (Block #1,428,940). Zero private leakage detected.</div>
-        </div>
+      {/* ZKIR Bytecode View */}
+      {activeView === 'zkir-bytecode' && (
+        <CyberCard3D glowColor="lime" className="code-inspector-card">
+          <div className="inspector-header">
+            <Terminal size={16} className="neon-lime" />
+            <span className="font-mono">ZKIR (Zero-Knowledge Intermediate Representation) Opcode Trace</span>
+          </div>
+
+          <pre className="cyber-code-block font-mono">
+{`// ZKIR Circuit: sponsorFeeIntent.zkir
+// Target: PLONK constraint system over BLS12-381 scalar field
+
+func sponsorFeeIntent(
+    witness userSecret: [32]u8,
+    witness shieldedBalance: u64,
+    witness intentPayload: [64]u8,
+    public intentHash: [32]u8,
+    public maxFee: u64
+) {
+    // 1. Assert balance sufficiency in zero knowledge
+    assert(shieldedBalance >= maxFee);
+
+    // 2. Compute cryptographic commitment hash
+    let computedDigest = sha256_combine(userSecret, intentPayload);
+    assert(computedDigest == intentHash);
+
+    // 3. Selective disclose public outputs
+    disclose(intentHash);
+    disclose(maxFee);
+}
+// Status: 100% Constraints Satisfied · 0 Bits of Witness Leaked`}
+          </pre>
+        </CyberCard3D>
       )}
 
-      {activeTab === 'compact-code' && (
-        <div className="code-box">
-          <div style={{ color: '#60a5fa' }}>// Excerpt from contracts/zandance_router.compact</div>
-          <div style={{ color: '#c084fc' }}>export circuit sponsorFeeIntent(intentHash: Bytes&lt;32&gt;, maxFee: Uint&lt;64&gt;): [] &#123;</div>
-          <div>&nbsp;&nbsp;assert dustPoolReserve &gt;= maxFee "Insufficient DUST in pool";</div>
-          <div style={{ color: '#94a3b8' }}>&nbsp;&nbsp;// Private witness execution off-chain:</div>
-          <div>&nbsp;&nbsp;const secret = getSenderSecret();</div>
-          <div>&nbsp;&nbsp;const payload = getIntentPayload();</div>
-          <div>&nbsp;&nbsp;const userBalance = getShieldedBalance();</div>
-          <div>&nbsp;&nbsp;assert userBalance &gt;= maxFee "Shielded funds insufficient";</div>
-          <div style={{ color: '#38bdf8' }}>&nbsp;&nbsp;// Deliberate disclosure only for public commitment:</div>
-          <div>&nbsp;&nbsp;intentCommitments.insert(disclose(intentHash), disclose(maxFee));</div>
-          <div>&nbsp;&nbsp;dustPoolReserve = dustPoolReserve - maxFee;</div>
-          <div style={{ color: '#c084fc' }}>&#125;</div>
-        </div>
+      {/* Compact Spec View */}
+      {activeView === 'compact-spec' && (
+        <CyberCard3D glowColor="purple" className="code-inspector-card">
+          <div className="inspector-header">
+            <Code2 size={16} className="neon-purple" />
+            <span className="font-mono">Midnight Compact Contract Rule: contracts/zandance_router.compact</span>
+          </div>
+
+          <pre className="cyber-code-block font-mono">
+{`export circuit sponsorFeeIntent(
+    witness senderSecret: Bytes<32>,
+    witness intentPayload: Bytes<64>,
+    witness shieldedBalance: Uint<64>,
+    intentHash: Bytes<32>,
+    maxFee: Uint<64>
+): [] {
+    assert(shieldedBalance >= maxFee, "Insufficient shielded funds");
+    assert(dustPoolReserve >= maxFee, "Insufficient DUST liquidity pool reserve");
+    
+    // Explicit disclosure to public ledger
+    intentCommitments.insert(disclose(intentHash), disclose(maxFee));
+    dustPoolReserve = dustPoolReserve - maxFee;
+    totalSponsoredTransactions = totalSponsoredTransactions + 1;
+}`}
+          </pre>
+        </CyberCard3D>
       )}
     </div>
   );

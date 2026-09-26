@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { ExternalLink, CheckCircle2, Shield, Layers, FileCode2, Terminal, Users, Search, Copy, Check } from 'lucide-react';
+import { ExternalLink, CheckCircle2, Shield, Layers, FileCode2, Terminal, Users, Search, Copy, Check, Radio } from 'lucide-react';
 import { GaslessIntent } from '../types';
 import preprodUsersData from '../data/preprodUsers.json';
+import { CyberCard3D } from './CyberCard3D';
 
 interface ExplorerViewProps {
   intents: GaslessIntent[];
@@ -40,141 +41,122 @@ export const ExplorerView: React.FC<ExplorerViewProps> = ({ intents }) => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      {/* Contract Header */}
-      <div className="glass-card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
+    <div className="tab-panel explorer-layout">
+      {/* Contract Header 3D Card */}
+      <CyberCard3D glowColor="purple" className="contract-header-card">
+        <div className="card-header-flex">
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10b981', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem' }}>
-              <CheckCircle2 size={16} />
-              <span>Verified Compact Contract on Midnight Preprod</span>
+            <div className="tech-badge-lime">
+              <CheckCircle2 size={13} />
+              <span>VERIFIED MIDNIGHT PREPROD CONTRACT</span>
             </div>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 700 }}>ZandanceRouter (v1.0.0)</h2>
+            <h2 className="tech-title">ZandanceRouter (v1.0.0)</h2>
+            <div className="contract-meta-row font-mono text-xs text-muted">
+              <span>Compiler: compactc v0.24.1-midnight</span>
+              <span>·</span>
+              <span>Block: #1428940</span>
+              <span>·</span>
+              <span className="neon-lime">Audit: PASSED (Zero Leakage)</span>
+            </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+
+          <div className="explorer-actions-group">
             <a
               href="https://x.com/ZandanceFi"
               target="_blank"
               rel="noreferrer"
-              className="btn-secondary"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none', color: '#38bdf8' }}
+              className="cyber-outline-btn text-cyan"
             >
-              <span>Follow @ZandanceFi</span>
-              <ExternalLink size={14} />
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+              </svg>
+              <span>@ZandanceFi</span>
+              <ExternalLink size={12} />
             </a>
+
             <a
               href={`https://preprod.midnight.network/contract/${contractAddress}`}
               target="_blank"
               rel="noreferrer"
-              className="btn-secondary"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none' }}
+              className="cyber-primary-pill"
             >
-              <span>Midnight Preprod Explorer</span>
-              <ExternalLink size={14} />
+              <span>Preprod Explorer</span>
+              <ExternalLink size={13} />
             </a>
           </div>
         </div>
 
-        <div style={{ background: 'rgba(0,0,0,0.4)', padding: '0.85rem 1rem', borderRadius: '10px', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Contract Address (Preprod)</div>
-          <div className="mono-tag" style={{ color: '#38bdf8', fontSize: '0.88rem' }}>
-            {contractAddress}
+        {/* Contract Address Copy Bar */}
+        <div className="contract-address-bar">
+          <div className="bar-label font-mono text-xs text-muted">DEPLOYED CONTRACT ADDRESS:</div>
+          <div className="bar-val-flex">
+            <span className="font-mono text-cyan break-all">{contractAddress}</span>
+            <button
+              onClick={() => copyToClipboard(contractAddress, 'contract')}
+              className="copy-btn-sm"
+              title="Copy Contract Address"
+            >
+              {copiedId === 'contract' ? <Check size={13} color="#ccff00" /> : <Copy size={13} />}
+            </button>
           </div>
         </div>
-      </div>
+      </CyberCard3D>
 
-      {/* Verified Circuits Table */}
-      <div className="glass-card">
-        <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Layers size={18} color="#c084fc" />
-          <span>Compiled Zero-Knowledge Circuits (`managed/`)</span>
-        </h3>
+      {/* Verified Circuits Grid */}
+      <CyberCard3D glowColor="cyan" className="circuits-card">
+        <div className="card-header-flex">
+          <div className="tech-badge-cyan">
+            <Layers size={13} />
+            <span>MANAGED ARTIFACTS</span>
+          </div>
+          <h3 className="tech-title-sm">Compiled Zero-Knowledge Circuits (`managed/`)</h3>
+        </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+        <div className="circuits-list-grid">
           {circuits.map((c) => (
-            <div
-              key={c.name}
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '0.75rem 1rem',
-                background: 'rgba(15, 23, 42, 0.6)',
-                borderRadius: '8px',
-                border: '1px solid var(--border-subtle)',
-                fontSize: '0.85rem'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <span className="mono-tag" style={{ color: '#f8fafc', fontWeight: 600 }}>{c.name}</span>
-                <span style={{ color: 'var(--text-secondary)' }}>{c.description}</span>
+            <div key={c.name} className="circuit-item-card">
+              <div className="circuit-name-row">
+                <span className="circuit-name font-mono">{c.name}()</span>
+                <span className={`circuit-type-badge font-mono ${c.type.includes('ZK') ? 'zk' : 'pub'}`}>
+                  {c.type}
+                </span>
               </div>
-              <span
-                style={{
-                  padding: '0.2rem 0.6rem',
-                  borderRadius: '9999px',
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  background: c.type.includes('ZK') ? 'rgba(147, 51, 234, 0.2)' : 'rgba(56, 189, 248, 0.15)',
-                  color: c.type.includes('ZK') ? '#d8b4fe' : '#7dd3fc',
-                  border: c.type.includes('ZK') ? '1px solid rgba(147, 51, 234, 0.4)' : '1px solid rgba(56, 189, 248, 0.3)'
-                }}
-              >
-                {c.type}
-              </span>
+              <p className="circuit-desc">{c.description}</p>
             </div>
           ))}
         </div>
-      </div>
+      </CyberCard3D>
 
       {/* 70 Verified Preprod Users Registry */}
-      <div className="glass-card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.2rem' }}>
+      <CyberCard3D glowColor="lime" className="users-registry-card">
+        <div className="card-header-flex">
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#38bdf8', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.2rem' }}>
-              <Users size={16} />
-              <span>Preprod Testnet Ledger · 70 Verified Participants (Level 5 & 6)</span>
+            <div className="tech-badge-lime">
+              <Users size={13} />
+              <span>70 VERIFIED PARTICIPANTS (LEVEL 5 &amp; 6)</span>
             </div>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700 }}>Testnet User Registry & ZK Proofs</h3>
+            <h3 className="tech-title-sm">Preprod Testnet User Registry &amp; ZK Proofs</h3>
           </div>
 
-          {/* Search & Filter Controls */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <Search size={14} style={{ position: 'absolute', left: '0.75rem', color: 'var(--text-muted)' }} />
+          {/* Search & Asset Filters */}
+          <div className="registry-filter-controls">
+            <div className="search-input-box">
+              <Search size={14} className="search-icon text-muted" />
               <input
                 type="text"
-                placeholder="Search user / address..."
+                placeholder="Search user / address / hash..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                style={{
-                  padding: '0.4rem 0.75rem 0.4rem 2rem',
-                  borderRadius: '8px',
-                  background: 'rgba(0,0,0,0.4)',
-                  border: '1px solid var(--border-subtle)',
-                  color: '#fff',
-                  fontSize: '0.82rem',
-                  width: '180px'
-                }}
+                className="cyber-search-field font-mono"
               />
             </div>
 
-            <div style={{ display: 'flex', gap: '0.25rem' }}>
+            <div className="asset-filter-pills">
               {['ALL', 'USDC', 'USDT', 'ETH', 'NIGHT'].map((asset) => (
                 <button
                   key={asset}
                   onClick={() => setSelectedAsset(asset)}
-                  style={{
-                    padding: '0.35rem 0.65rem',
-                    borderRadius: '6px',
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    background: selectedAsset === asset ? '#38bdf8' : 'rgba(255,255,255,0.05)',
-                    color: selectedAsset === asset ? '#0f172a' : 'var(--text-secondary)',
-                    border: 'none',
-                    transition: 'all 0.15s ease'
-                  }}
+                  className={`filter-pill font-mono ${selectedAsset === asset ? 'active' : ''}`}
                 >
                   {asset}
                 </button>
@@ -183,122 +165,70 @@ export const ExplorerView: React.FC<ExplorerViewProps> = ({ intents }) => {
           </div>
         </div>
 
-        {/* User Registry List */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '420px', overflowY: 'auto', paddingRight: '0.25rem' }}>
+        {/* User Registry Table List */}
+        <div className="user-registry-table-box">
           {filteredUsers.map((u) => (
-            <div
-              key={u.id}
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '0.75rem 1rem',
-                background: 'rgba(0, 0, 0, 0.35)',
-                borderRadius: '8px',
-                border: '1px solid var(--border-subtle)',
-                fontSize: '0.82rem',
-                flexWrap: 'wrap',
-                gap: '0.75rem'
-              }}
-            >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontWeight: 700, color: '#f8fafc' }}>@{u.username}</span>
-                  <span className="mono-tag" style={{ color: '#38bdf8', fontSize: '0.72rem' }}>
+            <div key={u.id} className="user-table-row">
+              <div className="user-col-left">
+                <div className="user-name-line">
+                  <span className="user-handle font-mono neon-lime">@{u.username}</span>
+                  <span className="user-address font-mono text-cyan">
                     {u.address.slice(0, 10)}...{u.address.slice(-6)}
                   </span>
                   <button
                     onClick={() => copyToClipboard(u.address, u.id)}
-                    style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0 }}
-                    title="Copy address"
+                    className="copy-btn-xs"
+                    title="Copy Address"
                   >
-                    {copiedId === u.id ? <Check size={12} color="#10b981" /> : <Copy size={12} />}
+                    {copiedId === u.id ? <Check size={11} color="#ccff00" /> : <Copy size={11} />}
                   </button>
                 </div>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                  Tx: <span className="mono-tag">{u.txHash.slice(0, 14)}...</span> · Block #{u.blockHeight}
+                <div className="user-tx-line font-mono text-xs text-muted">
+                  Tx: <span className="text-muted">{u.txHash.slice(0, 16)}...</span> · Block #{u.blockHeight}
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', textAlign: 'right' }}>
-                <div>
-                  <div style={{ color: '#f8fafc', fontWeight: 600 }}>
-                    {u.tokenAmount} {u.tokenSymbol}
-                  </div>
-                  <div style={{ color: '#10b981', fontSize: '0.75rem', fontWeight: 600 }}>
-                    +{u.dustSponsored.toLocaleString()} DUST
-                  </div>
+              <div className="user-col-right">
+                <div className="user-amount-stat">
+                  <div className="font-mono">{u.tokenAmount} {u.tokenSymbol}</div>
+                  <div className="sponsored-dust font-mono neon-lime">+{u.dustSponsored.toLocaleString()} DUST</div>
                 </div>
 
-                <span
-                  style={{
-                    padding: '0.2rem 0.5rem',
-                    borderRadius: '9999px',
-                    fontSize: '0.7rem',
-                    fontWeight: 700,
-                    background: 'rgba(16, 185, 129, 0.15)',
-                    color: '#34d399',
-                    border: '1px solid rgba(16, 185, 129, 0.3)'
-                  }}
-                >
-                  PREPROD
-                </span>
+                <span className="preprod-tag font-mono">CONFIRMED</span>
               </div>
             </div>
           ))}
         </div>
-      </div>
+      </CyberCard3D>
 
-      {/* Live Transaction Ledger Stream */}
-      <div className="glass-card">
-        <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Terminal size={18} color="#10b981" />
-          <span>Live Session Gasless Sponsorship Stream</span>
-        </h3>
-
-        {intents.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-            No live session transfers yet. Execute a transfer in the Fee Router to trigger on-chain ZK circuits!
+      {/* Live Session Activity Stream */}
+      {intents.length > 0 && (
+        <CyberCard3D glowColor="purple" className="live-stream-card">
+          <div className="card-header-flex">
+            <div className="tech-badge-magenta">
+              <Terminal size={13} />
+              <span>LIVE SESSION INTENTS</span>
+            </div>
+            <h3 className="tech-title-sm">Current Session On-Chain Stream</h3>
           </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-            {intents.map((item) => (
-              <div
-                key={item.id}
-                style={{
-                  padding: '0.85rem 1rem',
-                  background: 'rgba(0, 0, 0, 0.3)',
-                  borderRadius: '10px',
-                  border: '1px solid var(--border-subtle)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  fontSize: '0.82rem'
-                }}
-              >
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem' }}>
-                    <span style={{ fontWeight: 700, color: '#f8fafc' }}>{item.amount} {item.asset}</span>
-                    <span style={{ color: 'var(--text-muted)' }}>({item.sourceChain} ➔ {item.targetChain})</span>
-                  </div>
-                  <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                    Intent: <span className="mono-tag">{item.intentHash.slice(0, 16)}...</span> | Fee: {item.quotedFee} {item.feeToken}
-                  </div>
-                </div>
 
-                <div style={{ textAlign: 'right' }}>
-                  <span style={{ color: '#10b981', fontWeight: 600, display: 'block' }}>
-                    +{item.dustEquivalent.toLocaleString()} DUST Sponsored
-                  </span>
-                  <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>
-                    {new Date(item.timestamp).toLocaleTimeString()}
-                  </span>
+          <div className="live-intents-list">
+            {intents.map((item) => (
+              <div key={item.id} className="live-intent-row font-mono">
+                <div>
+                  <span className="neon-lime">{item.amount} {item.asset}</span>
+                  <span className="text-muted"> ({item.sourceChain} ➔ {item.targetChain})</span>
+                  <div className="text-xs text-muted">Intent: {item.intentHash.slice(0, 18)}...</div>
+                </div>
+                <div className="text-right">
+                  <span className="neon-cyan">+{item.dustEquivalent.toLocaleString()} DUST Sponsored</span>
+                  <div className="text-xs text-muted">{new Date(item.timestamp).toLocaleTimeString()}</div>
                 </div>
               </div>
             ))}
           </div>
-        )}
-      </div>
+        </CyberCard3D>
+      )}
     </div>
   );
 };
