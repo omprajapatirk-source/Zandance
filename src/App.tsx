@@ -24,7 +24,7 @@ export function App() {
   const [isLaceModalOpen, setIsLaceModalOpen] = useState(false);
 
   const [wallet, setWallet] = useState<WalletState>({
-    isConnected: true, // Default connected for instant testing / demo
+    isConnected: false, // Starts disconnected to demonstrate real Lace authorization flow
     address: '025c276e4ee2938b9ded19e9ae2e70181f97009f641b68bfe2f4ee6104ed0a5b',
     shieldedAddress: '0289fd103a74ef9081bcde541289ae301824ab8912efc4019a8234bc8912304f',
     nightBalance: 25000,
