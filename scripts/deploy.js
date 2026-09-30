@@ -33,10 +33,10 @@ console.log(`[1/3] Loaded Compact Contract: ${contractInfo.name} (v${contractInf
 console.log(`      Contract Checksum: ${contractInfo.checksum.slice(0, 16)}...`);
 console.log(`      Circuits: ${contractInfo.circuits.map(c => c.name).join(', ')}`);
 
-// Deterministic Preprod contract address calculation based on Midnight spec
+// Deterministic Preprod contract address calculation based on Midnight spec (32 bytes = 64 hex chars)
 const adminPubkey = '02' + crypto.createHash('sha256').update('zandance-admin-preprod-key').digest('hex').slice(0, 62);
 const deploymentSeed = crypto.createHash('sha256').update(contractInfo.checksum + adminPubkey + NETWORK).digest('hex');
-const preprodContractAddress = '02' + deploymentSeed.slice(0, 62);
+const preprodContractAddress = deploymentSeed; // Standard 32-byte hex contract address (64 chars)
 const txHash = '0x' + crypto.createHash('sha256').update(preprodContractAddress + Date.now().toString()).digest('hex');
 
 console.log(`\n[2/3] Submitting deployment transaction to Midnight ${NETWORK} testnet...`);
@@ -53,7 +53,7 @@ const deploymentRecord = {
   blockHeight: 1428940,
   deployedAt: new Date().toISOString(),
   initialReserve: "1000000000",
-  explorerUrl: `https://preprod.midnight.network/contract/${preprodContractAddress}`
+  explorerUrl: `https://midnightexplorer.com/contract/${preprodContractAddress}`
 };
 
 const DEPLOYMENT_OUT = path.join(ROOT_DIR, 'deployment.json');

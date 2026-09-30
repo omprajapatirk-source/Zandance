@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { PoolStats, WalletState } from '../types';
-import { Flame, Droplets, TrendingUp, ShieldAlert, Award, Clock } from 'lucide-react';
+import { Flame, Droplets, TrendingUp, ShieldAlert, Award, Clock, Activity, Zap, PlusCircle, Sliders, ArrowUpRight, CheckCircle2 } from 'lucide-react';
 
 interface PoolManagerProps {
   stats: PoolStats;
@@ -16,116 +16,244 @@ export const PoolManager: React.FC<PoolManagerProps> = ({
   onSimulateDecay
 }) => {
   const [depositAmount, setDepositAmount] = useState('500000');
-  const [decaySimAmount, setDecaySimAmount] = useState('50000');
+  const [decayLambda, setDecayLambda] = useState('0.05');
+  const [isDepositing, setIsDepositing] = useState(false);
+
+  const maxCapacity = 1_000_000_000;
+  const healthPercent = Math.min(100, (stats.reserveDust / maxCapacity) * 100);
+  const isLow = healthPercent < 25;
+
+  // Epoch decay curve bars
+  const epochTimeline = useMemo(() => {
+    const epochs: { epoch: number; heightPercent: number; dustVal: number }[] = [];
+    const lambdaNum = parseFloat(decayLambda) || 0.05;
+
+    for (let i = 0; i < 8; i++) {
+      const decayFactor = Math.exp(-lambdaNum * i);
+      const dustVal = Math.round(stats.reserveDust * decayFactor);
+      epochs.push({
+        epoch: stats.currentEpoch + i,
+        heightPercent: Math.max(12, Math.round(decayFactor * 100)),
+        dustVal,
+      });
+    }
+    return epochs;
+  }, [stats.currentEpoch, stats.reserveDust, decayLambda]);
+
+  const handleDepositSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const val = parseInt(depositAmount, 10);
+    if (!isNaN(val) && val > 0) {
+      setIsDepositing(true);
+      setTimeout(() => {
+        onDepositDust(val);
+        setIsDepositing(false);
+      }, 500);
+    }
+  };
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-      {/* Pool Health & Capacity Card */}
-      <div className="glass-card">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <Droplets size={22} color="#10b981" />
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>DUST Liquidity Pool</h2>
-          </div>
-          <span className="network-badge" style={{ background: 'rgba(147, 51, 234, 0.12)', borderColor: 'rgba(147, 51, 234, 0.3)', color: '#c084fc' }}>
-            Epoch #{stats.currentEpoch}
-          </span>
-        </div>
-
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '1.25rem' }}>
-          Midnight's anti-speculation design generates non-transferable DUST from staked NIGHT. Zandance pools DUST capacity to sponsor user cross-chain fees automatically.
-        </p>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-          <div style={{ background: 'rgba(0,0,0,0.3)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Available DUST Reserve</div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#10b981', fontFamily: 'var(--font-mono)', marginTop: '0.25rem' }}>
-              {stats.reserveDust.toLocaleString()}
+    <div className="w-full space-y-6">
+      {/* Top Header Card */}
+      <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-slate-900/90 via-slate-900/95 to-slate-950 border border-white/[0.08] backdrop-blur-xl shadow-2xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono mb-2">
+              <Droplets size={14} />
+              <span>STAKED NIGHT LIQUIDITY POOL</span>
             </div>
-            <div style={{ fontSize: '0.72rem', color: '#6ee7b7', marginTop: '0.2rem' }}>~{(stats.reserveDust / 35000).toFixed(0)} Txs Sponsored</div>
+            <h2 className="text-xl sm:text-2xl font-semibold font-syne text-foreground tracking-tight">
+              DUST Sponsorship Pool Engine
+            </h2>
+            <p className="text-xs sm:text-sm font-space text-muted-foreground mt-1 max-w-2xl leading-relaxed">
+              Non-transferable DUST generated continuously from NIGHT staking is pooled to sponsor multi-token gasless transactions.
+            </p>
           </div>
 
-          <div style={{ background: 'rgba(0,0,0,0.3)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Protocol Staked NIGHT</div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#c084fc', fontFamily: 'var(--font-mono)', marginTop: '0.25rem' }}>
-              {stats.stakedNight.toLocaleString()}
-            </div>
-            <div style={{ fontSize: '0.72rem', color: '#d8b4fe', marginTop: '0.2rem' }}>+120k DUST/hour Yield</div>
-          </div>
-        </div>
-
-        {/* Deposit NIGHT Yield into Pool */}
-        <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
-          <label className="form-label">Stake Rewards DUST Deposit (from NIGHT yield)</label>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <input
-              type="number"
-              className="form-input"
-              value={depositAmount}
-              onChange={(e) => setDepositAmount(e.target.value)}
-              placeholder="Amount"
-            />
-            <button
-              className="btn-primary"
-              style={{ whiteSpace: 'nowrap' }}
-              onClick={() => onDepositDust(parseFloat(depositAmount) || 0)}
-            >
-              Deposit DUST
-            </button>
+          <div className="flex items-center gap-2 self-start sm:self-auto px-3.5 py-1.5 rounded-2xl bg-slate-950/80 border border-white/[0.06] text-xs font-mono text-purple-300">
+            <Clock size={13} className="text-purple-400" />
+            <span>Epoch #{stats.currentEpoch}</span>
           </div>
         </div>
       </div>
 
-      {/* DUST Decay Mechanics & Relayer Status */}
-      <div className="glass-card">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <Flame size={22} color="#f43f5e" />
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>DUST Decay & Relayer Engine</h2>
+      {/* Metrics & Interactive Gauges Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column: Pool Metrics & Deposit Actions (2 cols) */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Capacity Gauge Card */}
+          <div className="p-6 sm:p-7 rounded-3xl bg-gradient-to-br from-slate-900/90 to-slate-950 border border-white/[0.08] backdrop-blur-xl shadow-xl space-y-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground font-semibold">
+                  POOL SOLVENCY &amp; CAPACITY
+                </span>
+                <div className="text-2xl font-mono font-bold text-foreground mt-0.5">
+                  {stats.reserveDust.toLocaleString()}{' '}
+                  <span className="text-xs font-normal text-muted-foreground">/ 1,000,000,000 DUST</span>
+                </div>
+              </div>
+              <span className={`text-xs font-mono font-bold px-3 py-1 rounded-full ${
+                isLow ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'
+              }`}>
+                {healthPercent.toFixed(1)}% SATURATED
+              </span>
+            </div>
+
+            {/* Visual Bar Gauge */}
+            <div className="w-full h-3.5 rounded-full bg-slate-950 p-0.5 overflow-hidden border border-white/[0.06]">
+              <div
+                className={`h-full rounded-full transition-all duration-700 ${
+                  isLow
+                    ? 'bg-gradient-to-r from-red-500 to-amber-500'
+                    : 'bg-gradient-to-r from-cyan-500 via-emerald-400 to-emerald-300'
+                }`}
+                style={{ width: `${healthPercent}%` }}
+              />
+            </div>
+
+            {/* Quick Stat Highlights */}
+            <div className="grid grid-cols-3 gap-3 pt-2">
+              <div className="p-3 rounded-2xl bg-slate-950/60 border border-white/[0.04]">
+                <div className="text-[10px] font-mono text-muted-foreground">ESTIMATED BUFFER</div>
+                <div className="text-sm font-mono font-bold text-cyan-400 mt-0.5">
+                  ~{(stats.reserveDust / 35000).toFixed(0)} Txs
+                </div>
+              </div>
+              <div className="p-3 rounded-2xl bg-slate-950/60 border border-white/[0.04]">
+                <div className="text-[10px] font-mono text-muted-foreground">TOTAL SPONSORED</div>
+                <div className="text-sm font-mono font-bold text-foreground mt-0.5">
+                  {stats.totalSponsoredTxs.toLocaleString()} Txs
+                </div>
+              </div>
+              <div className="p-3 rounded-2xl bg-slate-950/60 border border-white/[0.04]">
+                <div className="text-[10px] font-mono text-muted-foreground">SPONSORED GAS VALUE</div>
+                <div className="text-sm font-mono font-bold text-emerald-400 mt-0.5">
+                  ${((stats.totalDustSponsored / 35000) * 1.4).toFixed(2)}
+                </div>
+              </div>
+            </div>
           </div>
-          <span className="network-badge" style={{ color: '#fb7185', background: 'rgba(244, 63, 94, 0.12)', borderColor: 'rgba(244, 63, 94, 0.3)' }}>
-            <Clock size={12} />
-            <span>Decaying Asset</span>
-          </span>
+
+          {/* Interactive Yield Deposit & Drain Simulation Card */}
+          <div className="p-6 sm:p-7 rounded-3xl bg-gradient-to-br from-slate-900/90 to-slate-950 border border-white/[0.08] backdrop-blur-xl shadow-xl space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
+              <div className="flex items-center gap-2">
+                <PlusCircle size={16} className="text-emerald-400" />
+                <span className="text-xs font-mono uppercase tracking-wider text-foreground font-semibold">
+                  DEPOSIT NIGHT STAKING YIELD (DUST)
+                </span>
+              </div>
+              <span className="text-[11px] font-mono text-muted-foreground">
+                Wallet Balance: <strong className="text-foreground">{wallet.dustBalance.toLocaleString()} DUST</strong>
+              </span>
+            </div>
+
+            <form onSubmit={handleDepositSubmit} className="space-y-3.5">
+              <div className="flex flex-col sm:flex-row items-center gap-2.5">
+                <div className="relative w-full flex-1">
+                  <input
+                    type="number"
+                    value={depositAmount}
+                    onChange={(e) => setDepositAmount(e.target.value)}
+                    className="w-full py-2.5 px-4 rounded-xl bg-slate-950 border border-white/[0.08] text-sm font-mono text-foreground focus:outline-none focus:border-emerald-500/50"
+                    placeholder="DUST amount"
+                  />
+                  <span className="absolute right-3 top-2.5 text-xs font-mono text-muted-foreground">
+                    DUST
+                  </span>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isDepositing}
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-mono font-bold transition-all shadow-md flex items-center justify-center gap-2"
+                >
+                  <PlusCircle size={14} />
+                  <span>{isDepositing ? 'Depositing...' : 'Deposit DUST'}</span>
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono text-muted-foreground">Preset Amounts:</span>
+                {['100000', '500000', '1000000'].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setDepositAmount(preset)}
+                    className="px-2.5 py-1 rounded-lg bg-slate-950/80 hover:bg-slate-800 border border-white/[0.04] text-[10px] font-mono text-muted-foreground hover:text-foreground transition-all"
+                  >
+                    +{(parseInt(preset) / 1000).toLocaleString()}k
+                  </button>
+                ))}
+              </div>
+            </form>
+          </div>
         </div>
 
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '1.25rem' }}>
-          DUST naturally decays over time. Zandance continuously routes intents to avoid capacity waste and rebalances stale epochs via Compact circuits.
-        </p>
+        {/* Right Column: Midnight Exponential Half-Life Decay Simulator (1 col) */}
+        <div className="p-6 sm:p-7 rounded-3xl bg-gradient-to-br from-purple-950/30 via-slate-900/90 to-slate-950 border border-purple-500/20 backdrop-blur-xl shadow-xl flex flex-col justify-between space-y-5">
+          <div>
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
+              <div className="flex items-center gap-2">
+                <Flame size={16} className="text-purple-400" />
+                <span className="text-xs font-mono uppercase tracking-wider text-purple-300 font-bold">
+                  MIDNIGHT HALF-LIFE
+                </span>
+              </div>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                λ = {decayLambda}
+              </span>
+            </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem', fontSize: '0.85rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0.75rem', background: 'rgba(0,0,0,0.3)', borderRadius: '8px' }}>
-            <span style={{ color: 'var(--text-secondary)' }}>Active Solver Relayers</span>
-            <span style={{ fontWeight: 700, color: '#38bdf8' }}>{stats.activeRelayers} Online (EVM, Midnight, Solana)</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0.75rem', background: 'rgba(0,0,0,0.3)', borderRadius: '8px' }}>
-            <span style={{ color: 'var(--text-secondary)' }}>Total Sponsored Transactions</span>
-            <span style={{ fontWeight: 700, color: '#f8fafc', fontFamily: 'var(--font-mono)' }}>{stats.totalSponsoredTxs.toLocaleString()}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0.75rem', background: 'rgba(0,0,0,0.3)', borderRadius: '8px' }}>
-            <span style={{ color: 'var(--text-secondary)' }}>Cumulative DUST Sponsored</span>
-            <span style={{ fontWeight: 700, color: '#10b981', fontFamily: 'var(--font-mono)' }}>{stats.totalDustSponsored.toLocaleString()} DUST</span>
-          </div>
-        </div>
+            <p className="text-xs font-space text-muted-foreground mt-3 leading-relaxed">
+              Midnight protocol enforces exponential DUST decay: <br />
+              <code className="text-purple-300 font-mono text-[11px]">R(t) = R₀ · e^(-λt)</code>
+            </p>
 
-        {/* Decay Simulation Button */}
-        <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
-          <label className="form-label">Simulate Midnight Epoch Decay</label>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            {/* Visual Decay Bars */}
+            <div className="mt-5 space-y-2">
+              <div className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider mb-2">
+                Projected Epoch Degradation:
+              </div>
+              <div className="h-32 flex items-end justify-between gap-1.5 pt-4 pb-1 px-2 rounded-2xl bg-slate-950/70 border border-white/[0.04]">
+                {epochTimeline.map((item, idx) => (
+                  <div key={item.epoch} className="flex-1 flex flex-col items-center gap-1 group relative">
+                    {/* Tooltip on hover */}
+                    <div className="absolute -top-7 hidden group-hover:block px-2 py-0.5 rounded bg-slate-900 border border-white/[0.1] text-[9px] font-mono text-foreground whitespace-nowrap shadow-md z-10">
+                      {(item.dustVal / 1000).toFixed(0)}k DUST
+                    </div>
+                    <div
+                      className={`w-full rounded-t-lg transition-all duration-300 ${
+                        idx === 0
+                          ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.4)]'
+                          : 'bg-purple-500/60 group-hover:bg-purple-400'
+                      }`}
+                      style={{ height: `${item.heightPercent}%` }}
+                    />
+                    <span className="text-[9px] font-mono text-muted-foreground">
+                      E{item.epoch}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-3 border-t border-white/[0.06]">
+            <label className="flex items-center justify-between text-[11px] font-mono text-muted-foreground mb-1.5">
+              <span>Decay Rate (λ):</span>
+              <span className="text-foreground font-semibold">{decayLambda}</span>
+            </label>
             <input
-              type="number"
-              className="form-input"
-              value={decaySimAmount}
-              onChange={(e) => setDecaySimAmount(e.target.value)}
-              placeholder="Decay Amount"
+              type="range"
+              min="0.01"
+              max="0.20"
+              step="0.01"
+              value={decayLambda}
+              onChange={(e) => setDecayLambda(e.target.value)}
+              className="w-full accent-purple-400 cursor-pointer"
             />
-            <button
-              className="btn-secondary"
-              style={{ whiteSpace: 'nowrap', borderColor: 'rgba(244, 63, 94, 0.3)', color: '#fb7185' }}
-              onClick={() => onSimulateDecay(parseFloat(decaySimAmount) || 0)}
-            >
-              Apply Epoch Decay
-            </button>
           </div>
         </div>
       </div>

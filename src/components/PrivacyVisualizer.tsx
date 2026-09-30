@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, ShieldCheck, Lock, Unlock, Zap, Terminal } from 'lucide-react';
+import { Eye, EyeOff, ShieldCheck, Lock, Unlock, Zap, Terminal, Code2, Cpu, CheckCircle2, ShieldAlert, ArrowRight, Copy, Check } from 'lucide-react';
 import { GaslessIntent } from '../types';
 
 interface PrivacyVisualizerProps {
@@ -7,7 +7,14 @@ interface PrivacyVisualizerProps {
 }
 
 export const PrivacyVisualizer: React.FC<PrivacyVisualizerProps> = ({ latestIntent }) => {
-  const [activeTab, setActiveTab] = useState<'side-by-side' | 'circuit-trace' | 'compact-code'>('side-by-side');
+  const [activeView, setActiveView] = useState<'matrix' | 'zkir-bytecode' | 'compact-spec'>('matrix');
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const copyText = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(id);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
 
   const demoIntent = latestIntent || {
     id: 'int_demo_77',
@@ -17,7 +24,7 @@ export const PrivacyVisualizer: React.FC<PrivacyVisualizerProps> = ({ latestInte
     feeToken: 'USDC',
     quotedFee: 1.4,
     dustEquivalent: 35000,
-    amount: 100,
+    amount: 150,
     sourceChain: 'polygon',
     targetChain: 'midnight-preprod',
     status: 'settled',
@@ -25,138 +32,293 @@ export const PrivacyVisualizer: React.FC<PrivacyVisualizerProps> = ({ latestInte
   };
 
   return (
-    <div className="glass-card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#c084fc', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.2rem' }}>
-            <ShieldCheck size={16} />
-            <span>Midnight Privacy Model & Observable Privacy Behavior</span>
+    <div className="w-full space-y-6">
+      {/* Top Header Card */}
+      <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-slate-900/90 via-slate-900/95 to-slate-950 border border-white/[0.08] backdrop-blur-xl shadow-2xl">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-mono mb-2">
+              <ShieldCheck size={14} />
+              <span>CRYPTOGRAPHIC ENCLAVE &amp; ZK PROVER</span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-semibold font-syne text-foreground tracking-tight">
+              Observable Privacy &amp; ZK Circuit Inspector
+            </h2>
+            <p className="text-xs sm:text-sm font-space text-muted-foreground mt-1 max-w-2xl leading-relaxed">
+              Verify the strict mathematical boundary between off-chain private witnesses and public ledger disclosures on Midnight Preprod.
+            </p>
           </div>
-          <h2 style={{ fontSize: '1.35rem', fontWeight: 700 }}>Zero-Knowledge Privacy Inspector</h2>
-        </div>
 
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button
-            className={`tab-button ${activeTab === 'side-by-side' ? 'active' : ''}`}
-            onClick={() => setActiveTab('side-by-side')}
-          >
-            Public vs Shielded View
-          </button>
-          <button
-            className={`tab-button ${activeTab === 'circuit-trace' ? 'active' : ''}`}
-            onClick={() => setActiveTab('circuit-trace')}
-          >
-            Circuit Execution Trace
-          </button>
-          <button
-            className={`tab-button ${activeTab === 'compact-code' ? 'active' : ''}`}
-            onClick={() => setActiveTab('compact-code')}
-          >
-            Compact Contract Rules
-          </button>
+          {/* View Mode Selector Tabs */}
+          <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-slate-950/80 border border-white/[0.06] backdrop-blur-md self-start md:self-auto">
+            <button
+              onClick={() => setActiveView('matrix')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-mono font-medium transition-all ${
+                activeView === 'matrix'
+                  ? 'bg-foreground text-background shadow-md'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Eye size={13} />
+              <span>Dual Matrix View</span>
+            </button>
+            <button
+              onClick={() => setActiveView('zkir-bytecode')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-mono font-medium transition-all ${
+                activeView === 'zkir-bytecode'
+                  ? 'bg-foreground text-background shadow-md'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Cpu size={13} />
+              <span>ZKIR Bytecode</span>
+            </button>
+            <button
+              onClick={() => setActiveView('compact-spec')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-mono font-medium transition-all ${
+                activeView === 'compact-spec'
+                  ? 'bg-foreground text-background shadow-md'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Code2 size={13} />
+              <span>Compact disclose()</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {activeTab === 'side-by-side' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-          {/* Public Ledger Column */}
-          <div style={{ background: 'rgba(15, 23, 42, 0.6)', borderRadius: '14px', border: '1px solid var(--border-subtle)', padding: '1.25rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#38bdf8', fontWeight: 700, fontSize: '0.95rem', marginBottom: '1rem' }}>
-              <Eye size={18} />
-              <span>What an Observer Sees (Public Ledger)</span>
+      {/* Main Dual Matrix Visualizer */}
+      {activeView === 'matrix' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 relative items-stretch">
+          {/* Left Enclave: Private Witness (RAM Only) */}
+          <div className="p-6 sm:p-7 rounded-3xl bg-gradient-to-br from-purple-950/40 via-slate-900/90 to-slate-950 border border-purple-500/20 backdrop-blur-xl shadow-xl flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between pb-4 mb-5 border-b border-white/[0.06]">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400">
+                    <Lock size={16} />
+                  </div>
+                  <div>
+                    <span className="text-xs font-mono uppercase tracking-wider text-purple-400 font-bold block">
+                      OFF-CHAIN PRIVATE WITNESS
+                    </span>
+                    <span className="text-[11px] text-muted-foreground font-space">
+                      Client-Side Browser RAM Only
+                    </span>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-mono font-semibold">
+                  ENCLAVE SECURE
+                </span>
+              </div>
+
+              <div className="space-y-3.5">
+                {/* Private Field 1 */}
+                <div className="p-4 rounded-2xl bg-slate-950/60 border border-purple-500/10 space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px] font-mono text-purple-300">
+                    <span>1. SENDER SECRET KEY [getSenderSecret()]</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/20 text-purple-300">Hidden</span>
+                  </div>
+                  <div className="text-xs font-mono text-foreground font-semibold bg-slate-900/80 px-3 py-2 rounded-xl border border-white/[0.04]">
+                    0x7f4e91...8c201a (MASKED IN RAM · ZERO LEAKAGE)
+                  </div>
+                  <p className="text-[11px] font-space text-muted-foreground leading-normal">
+                    Evaluated inside client WASM PLONK constraints. Never transmitted over network or RPC.
+                  </p>
+                </div>
+
+                {/* Private Field 2 */}
+                <div className="p-4 rounded-2xl bg-slate-950/60 border border-purple-500/10 space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px] font-mono text-purple-300">
+                    <span>2. SHIELDED ASSET BALANCE [getShieldedBalance()]</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/20 text-purple-300">Confidential</span>
+                  </div>
+                  <div className="text-xs font-mono text-foreground font-semibold bg-slate-900/80 px-3 py-2 rounded-xl border border-white/[0.04]">
+                    420,000 DUST EQUIV (CONFIDENTIAL)
+                  </div>
+                  <p className="text-[11px] font-space text-muted-foreground leading-normal">
+                    Proves <code className="text-purple-300">Balance &gt;= Required Fee</code> without revealing total wallet holdings.
+                  </p>
+                </div>
+
+                {/* Private Field 3 */}
+                <div className="p-4 rounded-2xl bg-slate-950/60 border border-purple-500/10 space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px] font-mono text-purple-300">
+                    <span>3. CONFIDENTIAL INTENT PAYLOAD [getIntentPayload()]</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/20 text-purple-300">Encrypted</span>
+                  </div>
+                  <div className="text-xs font-mono text-foreground font-semibold bg-slate-900/80 px-3 py-2 rounded-xl border border-white/[0.04]">
+                    &#123; asset: &quot;{demoIntent.feeToken}&quot;, amount: {demoIntent.amount}, recipient: &quot;0279...&quot; &#125;
+                  </div>
+                  <p className="text-[11px] font-space text-muted-foreground leading-normal">
+                    Transaction parameters are hashed locally with cryptographic salt prior to disclosure.
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', fontSize: '0.85rem' }}>
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: '0.2rem' }}>Intent Commitment Hash (Public)</div>
-                <div className="mono-tag" style={{ color: '#38bdf8', wordBreak: 'break-all' }}>
-                  {demoIntent.intentHash}
-                </div>
-              </div>
-
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: '0.2rem' }}>Committed DUST Gas Capacity</div>
-                <div style={{ color: '#10b981', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
-                  {demoIntent.dustEquivalent.toLocaleString()} DUST
-                </div>
-              </div>
-
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: '0.2rem' }}>Zero-Knowledge SNARK Proof Status</div>
-                <div style={{ color: '#c084fc', fontWeight: 600 }}>
-                  VALID (Verified on Midnight Preprod via ZKIR)
-                </div>
-              </div>
-
-              <div style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '0.75rem', borderRadius: '8px', color: '#fca5a5', fontSize: '0.78rem' }}>
-                <strong>🚫 Hidden from Observers:</strong> Sender identity, source token balances, and cross-chain payload parameters are <em>impossible</em> to decrypt from the ledger.
+            <div className="mt-5 p-3.5 rounded-2xl bg-purple-950/30 border border-purple-500/20 flex items-center gap-3">
+              <ShieldCheck size={18} className="text-purple-400 shrink-0" />
+              <div className="text-xs font-space text-purple-200 leading-normal">
+                <strong className="text-foreground">Zero-Knowledge Boundary:</strong> No relayer or validator can view or decrypt these off-chain values.
               </div>
             </div>
           </div>
 
-          {/* Private Witness Column */}
-          <div style={{ background: 'rgba(15, 23, 42, 0.6)', borderRadius: '14px', border: '1px solid rgba(147, 51, 234, 0.3)', padding: '1.25rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#c084fc', fontWeight: 700, fontSize: '0.95rem', marginBottom: '1rem' }}>
-              <EyeOff size={18} />
-              <span>What Remains Shielded (Private Witness)</span>
+          {/* Right Enclave: Public Ledger Commitments */}
+          <div className="p-6 sm:p-7 rounded-3xl bg-gradient-to-br from-cyan-950/40 via-slate-900/90 to-slate-950 border border-cyan-500/20 backdrop-blur-xl shadow-xl flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between pb-4 mb-5 border-b border-white/[0.06]">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-400">
+                    <Eye size={16} />
+                  </div>
+                  <div>
+                    <span className="text-xs font-mono uppercase tracking-wider text-cyan-400 font-bold block">
+                      ON-CHAIN PUBLIC LEDGER
+                    </span>
+                    <span className="text-[11px] text-muted-foreground font-space">
+                      Midnight Preprod State
+                    </span>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-[10px] font-mono font-semibold">
+                  BLOCK #1428940
+                </span>
+              </div>
+
+              <div className="space-y-3.5">
+                {/* Public Field 1 */}
+                <div className="p-4 rounded-2xl bg-slate-950/60 border border-cyan-500/10 space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px] font-mono text-cyan-300">
+                    <span>1. INTENT COMMITMENT HASH [disclose(intentHash)]</span>
+                    <button
+                      onClick={() => copyText(demoIntent.intentHash, 'intentHash')}
+                      className="text-muted-foreground hover:text-cyan-400 transition-colors"
+                      title="Copy Hash"
+                    >
+                      {copiedField === 'intentHash' ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                    </button>
+                  </div>
+                  <div className="text-xs font-mono text-cyan-400 font-semibold bg-slate-900/80 px-3 py-2 rounded-xl border border-white/[0.04] break-all">
+                    {demoIntent.intentHash}
+                  </div>
+                  <p className="text-[11px] font-space text-muted-foreground leading-normal">
+                    SHA-256 pre-image digest. Prevents front-running and intent parameter tampering.
+                  </p>
+                </div>
+
+                {/* Public Field 2 */}
+                <div className="p-4 rounded-2xl bg-slate-950/60 border border-cyan-500/10 space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px] font-mono text-cyan-300">
+                    <span>2. DUST SPONSORSHIP CEILING [disclose(maxFee)]</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono">Sponsored</span>
+                  </div>
+                  <div className="text-xs font-mono text-emerald-400 font-semibold bg-slate-900/80 px-3 py-2 rounded-xl border border-white/[0.04]">
+                    {demoIntent.dustEquivalent.toLocaleString()} DUST (~${demoIntent.quotedFee.toFixed(2)})
+                  </div>
+                  <p className="text-[11px] font-space text-muted-foreground leading-normal">
+                    Publicly authorizes the maximum DUST amount deducted from the liquidity pool.
+                  </p>
+                </div>
+
+                {/* Public Field 3 */}
+                <div className="p-4 rounded-2xl bg-slate-950/60 border border-cyan-500/10 space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px] font-mono text-cyan-300">
+                    <span>3. ON-CHAIN NULLIFIER RECORD [settledIntents]</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono">Protected</span>
+                  </div>
+                  <div className="text-xs font-mono text-foreground font-semibold bg-slate-900/80 px-3 py-2 rounded-xl border border-white/[0.04]">
+                    SETTLED = TRUE (REPLAY ATTACK REJECTED)
+                  </div>
+                  <p className="text-[11px] font-space text-muted-foreground leading-normal">
+                    Deterministic nullifier prevents any intent from being executed or sponsored twice.
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', fontSize: '0.85rem' }}>
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: '0.2rem' }}>User Secret Key / Salt (Never Disclosed)</div>
-                <div className="mono-tag" style={{ color: '#f43f5e' }}>
-                  0x7f2081d09e... [PROTECTED BY CLIENT ZK PROVER]
-                </div>
-              </div>
-
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: '0.2rem' }}>Cross-Chain Shielded Payload (Witness Only)</div>
-                <div className="mono-tag" style={{ color: '#f59e0b' }}>
-                  Transfer 100 USDC to 0279fa9329e4...
-                </div>
-              </div>
-
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: '0.2rem' }}>Private Shielded Balance Verification</div>
-                <div style={{ color: '#34d399', fontWeight: 600 }}>
-                  Proven: Balance &gt;= 35,000 DUST Equivalent (Exact Balance Undisclosed)
-                </div>
-              </div>
-
-              <div style={{ background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)', padding: '0.75rem', borderRadius: '8px', color: '#6ee7b7', fontSize: '0.78rem' }}>
-                <strong>🛡️ Observable Privacy Invariant:</strong> The user proves they are authorized and have sufficient funds, without disclosing their address or transaction amount on public chains!
+            <div className="mt-5 p-3.5 rounded-2xl bg-cyan-950/30 border border-cyan-500/20 flex items-center gap-3">
+              <CheckCircle2 size={18} className="text-cyan-400 shrink-0" />
+              <div className="text-xs font-space text-cyan-200 leading-normal">
+                <strong className="text-foreground">Public State:</strong> Verifiable by any validator on Midnight Preprod without exposing sender identity.
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {activeTab === 'circuit-trace' && (
-        <div className="code-box">
-          <div style={{ color: '#a855f7', fontWeight: 700, marginBottom: '0.5rem' }}>// Midnight Proof Server Execution Log: sponsorFeeIntent</div>
-          <div>[1] Fetching private witness values: getSenderSecret(), getIntentPayload(), getShieldedBalance()... OK</div>
-          <div>[2] Computing Pedersen commitment: H(payload, secret_salt) == {demoIntent.intentHash.slice(0, 24)}... OK</div>
-          <div>[3] Checking constraint: shieldedBalance &gt;= maxFee (35000 DUST)... OK</div>
-          <div>[4] Invoking deliberate disclose() on intentHash and maxFee for public ledger insertion... OK</div>
-          <div>[5] Generating SNARK proof with zkir/sponsorFeeIntent.zkir and keys/sponsorFeeIntent.prover... OK</div>
-          <div style={{ color: '#34d399', marginTop: '0.5rem' }}>✔ Proof verification succeeded on Midnight Preprod (Block #1,428,940). Zero private leakage detected.</div>
+      {/* ZKIR Bytecode View */}
+      {activeView === 'zkir-bytecode' && (
+        <div className="p-6 sm:p-8 rounded-3xl bg-slate-950 border border-white/[0.08] backdrop-blur-xl shadow-2xl">
+          <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/[0.06]">
+            <div className="flex items-center gap-2 text-cyan-400 font-mono text-xs font-semibold">
+              <Terminal size={15} />
+              <span>ZKIR (Zero-Knowledge Intermediate Representation) Opcode Trace</span>
+            </div>
+            <span className="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+              100% Constraints Satisfied
+            </span>
+          </div>
+
+          <pre className="p-5 rounded-2xl bg-slate-900/80 border border-white/[0.04] font-mono text-xs text-foreground overflow-x-auto leading-relaxed">
+{`// ZKIR Circuit: sponsorFeeIntent.zkir
+// Target: PLONK constraint system over BLS12-381 scalar field
+
+func sponsorFeeIntent(
+    witness userSecret: [32]u8,
+    witness shieldedBalance: u64,
+    witness intentPayload: [64]u8,
+    public intentHash: [32]u8,
+    public maxFee: u64
+) {
+    // 1. Assert balance sufficiency in zero knowledge
+    assert(shieldedBalance >= maxFee);
+
+    // 2. Compute cryptographic commitment hash
+    let computedDigest = sha256_combine(userSecret, intentPayload);
+    assert(computedDigest == intentHash);
+
+    // 3. Selective disclose public outputs to ledger
+    disclose(intentHash);
+    disclose(maxFee);
+}
+// Status: 100% Constraints Satisfied · 0 Bits of Witness Leaked`}
+          </pre>
         </div>
       )}
 
-      {activeTab === 'compact-code' && (
-        <div className="code-box">
-          <div style={{ color: '#60a5fa' }}>// Excerpt from contracts/zandance_router.compact</div>
-          <div style={{ color: '#c084fc' }}>export circuit sponsorFeeIntent(intentHash: Bytes&lt;32&gt;, maxFee: Uint&lt;64&gt;): [] &#123;</div>
-          <div>&nbsp;&nbsp;assert dustPoolReserve &gt;= maxFee "Insufficient DUST in pool";</div>
-          <div style={{ color: '#94a3b8' }}>&nbsp;&nbsp;// Private witness execution off-chain:</div>
-          <div>&nbsp;&nbsp;const secret = getSenderSecret();</div>
-          <div>&nbsp;&nbsp;const payload = getIntentPayload();</div>
-          <div>&nbsp;&nbsp;const userBalance = getShieldedBalance();</div>
-          <div>&nbsp;&nbsp;assert userBalance &gt;= maxFee "Shielded funds insufficient";</div>
-          <div style={{ color: '#38bdf8' }}>&nbsp;&nbsp;// Deliberate disclosure only for public commitment:</div>
-          <div>&nbsp;&nbsp;intentCommitments.insert(disclose(intentHash), disclose(maxFee));</div>
-          <div>&nbsp;&nbsp;dustPoolReserve = dustPoolReserve - maxFee;</div>
-          <div style={{ color: '#c084fc' }}>&#125;</div>
+      {/* Compact Spec View */}
+      {activeView === 'compact-spec' && (
+        <div className="p-6 sm:p-8 rounded-3xl bg-slate-950 border border-white/[0.08] backdrop-blur-xl shadow-2xl">
+          <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/[0.06]">
+            <div className="flex items-center gap-2 text-purple-400 font-mono text-xs font-semibold">
+              <Code2 size={15} />
+              <span>Midnight Compact Contract: contracts/zandance_router.compact</span>
+            </div>
+            <span className="text-[11px] font-mono text-purple-400 bg-purple-500/10 px-2.5 py-1 rounded-full border border-purple-500/20">
+              compactc v0.24.1
+            </span>
+          </div>
+
+          <pre className="p-5 rounded-2xl bg-slate-900/80 border border-white/[0.04] font-mono text-xs text-foreground overflow-x-auto leading-relaxed">
+{`export circuit sponsorFeeIntent(
+    witness senderSecret: Bytes<32>,
+    witness intentPayload: Bytes<64>,
+    witness shieldedBalance: Uint<64>,
+    intentHash: Bytes<32>,
+    maxFee: Uint<64>
+): [] {
+    assert(shieldedBalance >= maxFee, "Insufficient shielded funds");
+    assert(dustPoolReserve >= maxFee, "Insufficient DUST liquidity pool reserve");
+    
+    // Explicit disclosure to public ledger
+    intentCommitments.insert(disclose(intentHash), disclose(maxFee));
+    dustPoolReserve = dustPoolReserve - maxFee;
+    totalSponsoredTransactions = totalSponsoredTransactions + 1;
+}`}
+          </pre>
         </div>
       )}
     </div>

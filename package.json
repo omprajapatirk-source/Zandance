@@ -24,9 +24,21 @@
   "author": "Zandance Core Team",
   "license": "MIT",
   "dependencies": {
+    "@base-ui/react": "^1.8.0",
+    "@midnight-ntwrk/compact-runtime": "^0.19.0",
+    "@midnight-ntwrk/dapp-connector-api": "^4.0.1",
+    "@midnight-ntwrk/midnight-js": "^4.1.1",
+    "autoprefixer": "^10.6.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "framer-motion": "^13.4.4",
     "lucide-react": "^1.16.0",
+    "motion": "^13.4.4",
+    "postcss": "^8.5.28",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^3.7.0",
+    "tailwindcss": "^3.4.17"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
@@ -35,6 +47,8 @@
     "@vitejs/plugin-react": "^4.3.4",
     "typescript": "^5.7.2",
     "vite": "^6.0.3",
+    "vite-plugin-node-polyfills": "^0.28.0",
+    "vite-plugin-wasm": "^3.6.0",
     "vitest": "^2.1.8"
   }
 }

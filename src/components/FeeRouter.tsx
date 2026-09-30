@@ -1,40 +1,83 @@
+"use client";
+
 import React, { useState } from 'react';
 import { WalletState, GaslessIntent } from '../types';
-import { ArrowRightLeft, Sparkles, ShieldCheck, CheckCircle2, AlertCircle, Cpu, ExternalLink } from 'lucide-react';
+import {
+  ArrowRightLeft,
+  Sparkles,
+  ShieldCheck,
+  CheckCircle2,
+  AlertCircle,
+  Cpu,
+  ExternalLink,
+  Copy,
+  Check,
+  Lock,
+  Zap,
+  Radio,
+  Sliders,
+  Terminal,
+  ChevronRight,
+  ChevronDown,
+  Search
+} from 'lucide-react';
+import { callSponsorFeeIntent, type CircuitCallResult } from '../midnight';
+import { GenerateButton } from './GenerateButton';
+import { SearchableTokenSelector, TokenOption } from './SearchableTokenSelector';
+import { CrossChainRouteMap } from './CrossChainRouteMap';
 
 interface FeeRouterProps {
   wallet: WalletState;
   onIntentExecuted: (intent: GaslessIntent) => void;
+  onOpenReceipt?: (intent: GaslessIntent) => void;
 }
 
 const SUPPORTED_CHAINS = [
-  { id: 'midnight-preprod', name: 'Midnight Preprod', icon: '🌙', type: 'ZK Privacy' },
-  { id: 'polygon', name: 'Polygon PoS', icon: '🟣', type: 'EVM' },
-  { id: 'ethereum', name: 'Ethereum Sepolia', icon: '🔷', type: 'EVM' },
-  { id: 'cardano', name: 'Cardano Preprod', icon: '🔵', type: 'UTXO' },
-  { id: 'solana', name: 'Solana Devnet', icon: '🟣', type: 'SVM' }
+  { id: 'polygon', name: 'Polygon PoS', icon: '🟣', badge: 'EVM' },
+  { id: 'ethereum', name: 'Ethereum Sepolia', icon: '🔷', badge: 'EVM' },
+  { id: 'cardano', name: 'Cardano Preprod', icon: '🔵', badge: 'UTXO' },
+  { id: 'midnight-preprod', name: 'Midnight Preprod', icon: '🌌', badge: 'ZK SHIELDED' },
+  { id: 'solana', name: 'Solana Devnet', icon: '🟣', badge: 'SVM' }
 ];
 
-const FEE_TOKENS = [
-  { symbol: 'USDC', rate: 25000, name: 'USD Coin', icon: '💵' },
-  { symbol: 'USDT', rate: 25000, name: 'Tether USD', icon: '💲' },
-  { symbol: 'ETH', rate: 75000000, name: 'Ether', icon: '🔷' },
-  { symbol: 'ADA', rate: 18000, name: 'Cardano ADA', icon: '🔵' },
-  { symbol: 'SOL', rate: 4500000, name: 'Solana SOL', icon: '🟣' }
+const FEE_TOKENS: TokenOption[] = [
+  { symbol: 'USDC', name: 'USD Coin', rate: 25000, icon: '💵', color: '#00f0ff', balance: 2450.50 },
+  { symbol: 'USDT', name: 'Tether USD', rate: 25000, icon: '💲', color: '#10b981', balance: 1200.00 },
+  { symbol: 'ETH', name: 'Ether', rate: 75000000, icon: '🔷', color: '#6366f1', balance: 1.45 },
+  { symbol: 'NIGHT', name: 'Midnight NIGHT', rate: 7000, icon: '🌌', color: '#9d4edd', balance: 25000 },
+  { symbol: 'ADA', name: 'Cardano ADA', rate: 18000, icon: '🔵', color: '#38bdf8', balance: 4500 }
 ];
 
-export const FeeRouter: React.FC<FeeRouterProps> = ({ wallet, onIntentExecuted }) => {
+const PROOF_STEPS = [
+  { label: 'Witness Generation [getSenderSecret & getShieldedBalance]', detail: 'RAM enclave isolation', icon: <Lock size={14} /> },
+  { label: 'PLONK SNARK Proof [sponsorFeeIntent.zkir]', detail: '18ms constraint verification', icon: <Cpu size={14} /> },
+  { label: 'Relayer Sponsorship & Preprod Ledger Broadcast', detail: 'Zero gas broadcast', icon: <Zap size={14} /> }
+];
+
+export const FeeRouter: React.FC<FeeRouterProps> = ({ wallet, onIntentExecuted, onOpenReceipt }) => {
   const [sourceChain, setSourceChain] = useState('polygon');
   const [targetChain, setTargetChain] = useState('midnight-preprod');
-  const [transferAmount, setTransferAmount] = useState('100');
+  const [transferAmount, setTransferAmount] = useState('150');
   const [selectedFeeToken, setSelectedFeeToken] = useState('USDC');
+  const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
   const [recipient, setRecipient] = useState('0279fa9329e4bf18e907a0c84b5c77e382098b1a8ef8325da78a9c1e0892c');
-  const [status, setStatus] = useState<'idle' | 'proving' | 'sponsoring' | 'success'>('idle');
+  const [status, setStatus] = useState<'idle' | 'step0' | 'step1' | 'step2' | 'success' | 'error'>('idle');
   const [latestTx, setLatestTx] = useState<GaslessIntent | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [circuitError, setCircuitError] = useState<string | null>(null);
 
-  const currentFeeConfig = FEE_TOKENS.find(t => t.symbol === selectedFeeToken) || FEE_TOKENS[0];
-  const requiredDust = 35000; // 35k DUST estimated transaction gas
+  const currentFeeConfig = FEE_TOKENS.find((t) => t.symbol === selectedFeeToken) || FEE_TOKENS[0];
+  const requiredDust = 35000;
   const quotedTokenFee = (requiredDust / currentFeeConfig.rate).toFixed(4);
+  const isProcessing = status === 'step0' || status === 'step1' || status === 'step2';
+
+  const copyToClipboard = async (text: string, field: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 2000);
+    } catch { /* silent */ }
+  };
 
   const handleExecute = async () => {
     if (!wallet.isConnected) {
@@ -42,241 +85,398 @@ export const FeeRouter: React.FC<FeeRouterProps> = ({ wallet, onIntentExecuted }
       return;
     }
 
-    setStatus('proving');
-    // Simulate generating client-side zero-knowledge proof using Compact circuits
-    await new Promise(r => setTimeout(r, 1400));
+    setCircuitError(null);
+    setStatus('step0');
 
-    setStatus('sponsoring');
-    // Simulate DUST pool allocation and Relayer broadcast
-    await new Promise(r => setTimeout(r, 1200));
-
-    const intentId = 'int_' + Math.random().toString(36).substring(2, 9);
-    const intentHash = '0x' + Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('');
-    const txHash = '0x' + Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('');
-    const proofHex = '0xzkproof_snark_' + Array.from({length: 32}, () => Math.floor(Math.random()*16).toString(16)).join('');
-
-    const newIntent: GaslessIntent = {
-      id: intentId,
+    // Assemble off-chain private witnesses
+    const senderSecret = wallet.shieldedAddress || wallet.address;
+    const intentPayload = JSON.stringify({
       sourceChain,
       targetChain,
       asset: 'USDC',
-      amount: parseFloat(transferAmount),
+      amount: parseFloat(transferAmount) || 10,
+      recipient,
+      feeToken: selectedFeeToken,
+      nonce: Date.now(),
+    });
+    const shieldedBalance = BigInt(wallet.dustBalance || 1000000);
+    const maxFee = BigInt(requiredDust);
+
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    setStatus('step1');
+
+    // Execute compiled Compact circuit runtime with client-side witness evaluation
+    let circuitResult: CircuitCallResult;
+    try {
+      circuitResult = await callSponsorFeeIntent({
+        senderSecret,
+        intentPayload,
+        shieldedBalance,
+        maxFee,
+      });
+    } catch (err: any) {
+      console.error('[FeeRouter] Compact circuit execution failed:', err);
+      setCircuitError(err?.message || 'Compact circuit execution failed');
+      setStatus('error');
+      return;
+    }
+
+    setStatus('step2');
+    await new Promise((resolve) => setTimeout(resolve, 400));
+
+    const intentRecord: GaslessIntent = {
+      id: `intent_${Date.now()}`,
+      sourceChain,
+      targetChain,
+      asset: 'USDC',
+      amount: parseFloat(transferAmount) || 10,
       feeToken: selectedFeeToken,
       quotedFee: parseFloat(quotedTokenFee),
       dustEquivalent: requiredDust,
-      intentHash,
       status: 'settled',
+      intentHash: circuitResult.intentHash,
+      txHash: circuitResult.txHash,
+      proofHex: circuitResult.proofHex,
       timestamp: Date.now(),
-      txHash,
-      proofHex
     };
 
-    setLatestTx(newIntent);
+    setLatestTx(intentRecord);
     setStatus('success');
-    onIntentExecuted(newIntent);
+    onIntentExecuted(intentRecord);
   };
 
+  const buttonStatus: 'idle' | 'loading' | 'success' | 'error' = isProcessing
+    ? 'loading'
+    : status === 'success'
+    ? 'success'
+    : status === 'error'
+    ? 'error'
+    : 'idle';
+
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '1.5rem' }}>
-      {/* Left Column: Form */}
-      <div className="glass-card">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-          <div>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 700 }}>Zero-Gas Cross-Chain Transfer</h2>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              Pay Midnight or cross-chain gas using any token in your wallet.
-            </p>
-          </div>
-          <span className="network-badge">
-            <Sparkles size={14} />
-            <span>DUST Sponsored</span>
-          </span>
-        </div>
+    <div className="flex flex-col gap-6 w-full">
+      {/* Searchable Token Modal */}
+      <SearchableTokenSelector
+        isOpen={isTokenModalOpen}
+        onClose={() => setIsTokenModalOpen(false)}
+        selectedToken={selectedFeeToken}
+        onSelectToken={(sym) => setSelectedFeeToken(sym)}
+        tokens={FEE_TOKENS}
+      />
 
-        {/* Chain Routing */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '1rem', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <div>
-            <label className="form-label">Source Chain</label>
-            <select
-              className="form-select"
-              value={sourceChain}
-              onChange={(e) => setSourceChain(e.target.value)}
-            >
-              {SUPPORTED_CHAINS.map(c => (
-                <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
-              ))}
-            </select>
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full">
+        {/* Main Intent Composer Glass Card */}
+        <div className="lg:col-span-8 rounded-3xl bg-slate-900/90 dark:bg-slate-900/90 bg-card/90 backdrop-blur-2xl p-6 sm:p-8 shadow-2xl flex flex-col justify-between">
+        <div>
+          {/* Card Top Title */}
+          <div className="flex items-center justify-between pb-5 border-b border-white/[0.06]">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-400 text-xs font-mono font-medium mb-2">
+                <Sparkles size={12} />
+                <span>ZERO-GAS PROTOCOL</span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-semibold font-syne text-foreground tracking-tight">
+                Cross-Chain Fee Router
+              </h2>
+              <p className="text-xs sm:text-sm font-space text-muted-foreground mt-1">
+                Sponsor Midnight DUST gas fees in any token with zero-knowledge witness isolation.
+              </p>
+            </div>
 
-          <div style={{
-            marginTop: '1.5rem',
-            width: '36px',
-            height: '36px',
-            borderRadius: '50%',
-            background: 'rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: '1px solid var(--border-subtle)'
-          }}>
-            <ArrowRightLeft size={16} color="var(--text-secondary)" />
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950/60 font-mono text-xs text-muted-foreground">
+              <span className="size-2 rounded-full bg-cyan-400 animate-pulse" />
+              <span>Route: Active</span>
+            </div>
           </div>
 
-          <div>
-            <label className="form-label">Destination Chain</label>
-            <select
-              className="form-select"
-              value={targetChain}
-              onChange={(e) => setTargetChain(e.target.value)}
-            >
-              {SUPPORTED_CHAINS.map(c => (
-                <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Amount and Recipient */}
-        <div className="form-group">
-          <label className="form-label">Transfer Amount (USDC)</label>
-          <input
-            type="number"
-            className="form-input"
-            value={transferAmount}
-            onChange={(e) => setTransferAmount(e.target.value)}
-            placeholder="0.00"
-          />
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">Recipient Address (Midnight Preprod Shielded Address)</label>
-          <input
-            type="text"
-            className="form-input"
-            value={recipient}
-            onChange={(e) => setRecipient(e.target.value)}
-            style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}
-          />
-        </div>
-
-        {/* Fee Payment Token Selector */}
-        <div className="form-group">
-          <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span>Pay Gas Fee In:</span>
-            <span style={{ color: '#10b981', fontWeight: 600 }}>0 DUST Needed from User</span>
-          </label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem' }}>
-            {FEE_TOKENS.map((token) => (
-              <button
-                key={token.symbol}
-                type="button"
-                onClick={() => setSelectedFeeToken(token.symbol)}
-                style={{
-                  background: selectedFeeToken === token.symbol ? 'rgba(147, 51, 234, 0.25)' : 'rgba(10, 15, 28, 0.6)',
-                  border: selectedFeeToken === token.symbol ? '1px solid #9333ea' : '1px solid var(--border-subtle)',
-                  borderRadius: '10px',
-                  padding: '0.6rem 0.4rem',
-                  color: 'var(--text-primary)',
-                  cursor: 'pointer',
-                  textAlign: 'center',
-                  transition: 'all 0.2s'
-                }}
+          {/* Chain Route Switcher Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-11 gap-3 items-center my-6">
+            <div className="sm:col-span-5 p-3.5 rounded-2xl bg-slate-950/70">
+              <label className="text-[10px] font-mono uppercase text-muted-foreground block mb-1">
+                SOURCE CHAIN
+              </label>
+              <select
+                value={sourceChain}
+                onChange={(e) => setSourceChain(e.target.value)}
+                className="w-full bg-transparent font-syne font-medium text-sm text-foreground outline-none cursor-pointer"
               >
-                <div style={{ fontSize: '1.1rem' }}>{token.icon}</div>
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, marginTop: '0.2rem' }}>{token.symbol}</div>
+                {SUPPORTED_CHAINS.map((c) => (
+                  <option key={c.id} value={c.id} className="bg-slate-900 text-foreground">
+                    {c.icon} {c.name} ({c.badge})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="sm:col-span-1 flex items-center justify-center">
+              <div className="size-8 rounded-full bg-slate-950/80 flex items-center justify-center text-cyan-400 shadow-sm">
+                <ArrowRightLeft size={14} />
+              </div>
+            </div>
+
+            <div className="sm:col-span-5 p-3.5 rounded-2xl bg-slate-950/70">
+              <label className="text-[10px] font-mono uppercase text-muted-foreground block mb-1">
+                DESTINATION NETWORK
+              </label>
+              <select
+                value={targetChain}
+                onChange={(e) => setTargetChain(e.target.value)}
+                className="w-full bg-transparent font-syne font-medium text-sm text-foreground outline-none cursor-pointer"
+              >
+                {SUPPORTED_CHAINS.map((c) => (
+                  <option key={c.id} value={c.id} className="bg-slate-900 text-foreground">
+                    {c.icon} {c.name} ({c.badge})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Transfer Amount Input Box */}
+          <div className="p-4 rounded-2xl bg-slate-950/70">
+            <div className="flex items-center justify-between text-xs font-mono text-muted-foreground mb-2">
+              <span>TRANSFER AMOUNT</span>
+              <span>Available: $2,450.50 USDC</span>
+            </div>
+
+            <div className="flex items-center justify-between gap-4">
+              <input
+                type="number"
+                value={transferAmount}
+                onChange={(e) => setTransferAmount(e.target.value)}
+                placeholder="0.00"
+                className="w-full bg-transparent text-2xl sm:text-3xl font-mono font-bold text-foreground outline-none"
+              />
+              <span className="px-3 py-1.5 rounded-xl bg-slate-900 text-xs font-mono font-bold text-foreground shrink-0 shadow-sm">
+                USDC
+              </span>
+            </div>
+
+            {/* Quick Percentage Presets */}
+            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/[0.06]">
+              {['25%', '50%', '75%', '100%'].map((pct) => (
+                <button
+                  key={pct}
+                  type="button"
+                  onClick={() => {
+                    const balance = 2450.50;
+                    const factor = parseInt(pct) / 100;
+                    setTransferAmount((balance * factor).toFixed(2));
+                  }}
+                  className="px-2.5 py-1 text-[11px] font-mono rounded-lg bg-slate-900/90 hover:bg-slate-800 text-muted-foreground hover:text-foreground transition-all"
+                >
+                  {pct === '100%' ? 'MAX' : pct}
+                </button>
+              ))}
+              <div className="ml-auto text-[11px] font-mono text-emerald-400 flex items-center gap-1">
+                <ShieldCheck size={13} />
+                <span>Zero Gas Fee Sponsored</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Recipient Shielded Address */}
+          <div className="mt-4 p-4 rounded-2xl bg-slate-950/70">
+            <div className="flex items-center justify-between text-xs font-mono text-muted-foreground mb-1">
+              <span>RECIPIENT SHIELDED ADDRESS</span>
+              <span className="text-[10px] text-cyan-400">BLS12-381 / SECP256K1</span>
+            </div>
+            <input
+              type="text"
+              value={recipient}
+              onChange={(e) => setRecipient(e.target.value)}
+              placeholder="02..."
+              className="w-full bg-transparent font-mono text-xs text-foreground outline-none truncate"
+            />
+          </div>
+
+          {/* Fee Token Selector Button */}
+          <div className="mt-4 p-4 rounded-2xl bg-slate-950/70">
+            <div className="flex items-center justify-between text-xs font-mono text-muted-foreground mb-2">
+              <span>PAY SPONSORSHIP FEE IN</span>
+              <button
+                type="button"
+                onClick={() => setIsTokenModalOpen(true)}
+                className="text-[11px] font-mono text-cyan-400 hover:underline flex items-center gap-1"
+              >
+                <span>Search All Tokens</span>
+                <ChevronDown size={12} />
               </button>
-            ))}
+            </div>
+
+            <div className="flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => setIsTokenModalOpen(true)}
+                className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-foreground transition-all shadow-sm"
+              >
+                <span className="text-base">{currentFeeConfig.icon}</span>
+                <span className="font-mono font-bold text-xs">{currentFeeConfig.symbol}</span>
+                <ChevronDown size={13} className="text-muted-foreground" />
+              </button>
+
+              <div className="text-right">
+                <div className="text-xs font-mono font-bold text-foreground">
+                  {quotedTokenFee} {currentFeeConfig.symbol}
+                </div>
+                <div className="text-[10px] font-mono text-muted-foreground">
+                  ~35,000 DUST Sponsored
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Comparison Savings Bar */}
+          <div className="p-3.5 rounded-2xl bg-emerald-950/40 flex items-center justify-between text-xs font-mono my-4">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Zap size={14} className="text-emerald-400" />
+              <span>Estimated Legacy Gas: <span className="line-through text-slate-500">~$12.50</span></span>
+            </div>
+            <div className="text-emerald-400 font-bold flex items-center gap-1.5">
+              <span>Midnight Route: $0.00 Gas</span>
+              <span className="px-1.5 py-0.5 rounded bg-emerald-400/20 text-[10px]">SAVE 100%</span>
+            </div>
           </div>
         </div>
 
-        {/* Execute Button */}
-        <button
-          className="btn-primary"
-          style={{ width: '100%', marginTop: '0.5rem', padding: '1rem' }}
-          onClick={handleExecute}
-          disabled={status === 'proving' || status === 'sponsoring'}
-        >
-          {status === 'proving' && (
-            <>
-              <Cpu className="spin" size={20} />
-              <span>Generating Midnight Zero-Knowledge Proof...</span>
-            </>
-          )}
-          {status === 'sponsoring' && (
-            <>
-              <Sparkles size={20} />
-              <span>Relayer Fronting DUST Fee on Midnight Preprod...</span>
-            </>
-          )}
-          {(status === 'idle' || status === 'success') && (
-            <>
-              <ShieldCheck size={20} />
-              <span>Execute Zero-Gas Transfer ({quotedTokenFee} {selectedFeeToken})</span>
-            </>
-          )}
-        </button>
+        {/* Generate Button Component */}
+        <div className="mt-4">
+          <GenerateButton
+            onClick={handleExecute}
+            status={buttonStatus}
+            disabled={!wallet.isConnected}
+            disabledReason="Please connect Lace wallet to sponsor transactions"
+            label="Generate ZK Proof & Sponsor Transfer"
+          />
+        </div>
       </div>
 
-      {/* Right Column: Live Fee Breakdown & Receipt */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-        <div className="glass-card">
-          <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span>⚡ Fee Abstraction Quote</span>
-          </h3>
+      {/* Side Telemetry Column */}
+      <div className="lg:col-span-4 flex flex-col gap-6">
+        {/* Dynamic Fee Oracle Card */}
+        <div className="rounded-3xl bg-gradient-to-b from-indigo-950/50 via-slate-900/90 to-slate-900/95 backdrop-blur-2xl p-6 shadow-2xl">
+          <div className="flex items-center gap-2 pb-4 border-b border-white/[0.06] font-syne font-semibold text-sm text-foreground">
+            <Radio size={15} className="text-cyan-400" />
+            <span>Real-Time Fee Oracle</span>
+          </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.85rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
-              <span>Destination Gas (Midnight)</span>
-              <span style={{ color: '#10b981', fontWeight: 600 }}>{requiredDust.toLocaleString()} DUST</span>
+          <div className="space-y-3.5 mt-4 text-xs font-mono">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">DUST Required:</span>
+              <span className="text-foreground font-bold">{requiredDust.toLocaleString()} DUST</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
-              <span>Zandance DUST Pool</span>
-              <span style={{ color: '#c084fc' }}>Sponsored 100%</span>
+
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">DUST Pool Subsidy:</span>
+              <span className="text-emerald-400 font-bold">100% Gasless</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
-              <span>Exchange Rate</span>
-              <span style={{ fontFamily: 'var(--font-mono)' }}>1 {selectedFeeToken} = {currentFeeConfig.rate.toLocaleString()} DUST</span>
+
+            <div className="flex items-center justify-between pt-2 border-t border-white/[0.06]">
+              <span className="text-muted-foreground">Reimbursement:</span>
+              <span className="text-cyan-400 font-bold text-sm">
+                {quotedTokenFee} {selectedFeeToken}
+              </span>
             </div>
-            <div style={{ height: '1px', background: 'var(--border-subtle)', margin: '0.25rem 0' }} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '0.95rem' }}>
-              <span>You Pay Exactly</span>
-              <span style={{ color: '#f8fafc' }}>{quotedTokenFee} {selectedFeeToken}</span>
-            </div>
+          </div>
+
+          <div className="mt-5 p-3 rounded-xl bg-slate-950/60 text-[11px] font-space text-muted-foreground flex items-start gap-2">
+            <ShieldCheck size={15} className="text-cyan-400 shrink-0 mt-0.5" />
+            <span>
+              <strong>Zero-Knowledge Guarantee:</strong> Private keys and account balances never leave browser memory.
+            </span>
           </div>
         </div>
 
-        {/* Success Transaction Banner */}
-        {latestTx && (
-          <div className="glass-card" style={{ border: '1px solid rgba(16, 185, 129, 0.4)', background: 'rgba(16, 185, 129, 0.05)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10b981', fontWeight: 700, marginBottom: '0.75rem' }}>
-              <CheckCircle2 size={18} />
-              <span>Transaction Settled Gasless!</span>
+        {/* Live Stepper when Proving */}
+        {isProcessing && (
+          <div className="rounded-3xl bg-slate-900/95 backdrop-blur-2xl p-6 shadow-2xl animate-fade-in">
+            <div className="flex items-center gap-2 pb-3 border-b border-white/[0.06] font-syne font-semibold text-xs text-foreground">
+              <Terminal size={14} className="text-cyan-400" />
+              <span>Compact Circuit Execution</span>
             </div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-              <div>
-                <span style={{ color: 'var(--text-muted)' }}>Intent Hash: </span>
-                <span className="mono-tag">{latestTx.intentHash.slice(0, 12)}...</span>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)' }}>Preprod Tx: </span>
-                <span className="mono-tag" style={{ color: '#38bdf8' }}>{latestTx.txHash?.slice(0, 12)}...</span>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)' }}>ZK Proof: </span>
-                <span className="mono-tag" style={{ color: '#c084fc' }}>Verified SNARK ✅</span>
-              </div>
-              <a
-                href={`https://preprod.midnight.network/tx/${latestTx.txHash}`}
-                target="_blank"
-                rel="noreferrer"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: '#a855f7', marginTop: '0.5rem', textDecoration: 'none', fontWeight: 600 }}
-              >
-                <span>View on Midnight Preprod Explorer</span>
-                <ExternalLink size={12} />
-              </a>
+
+            <div className="space-y-3 mt-4">
+              {PROOF_STEPS.map((s, idx) => {
+                const currentStepNum = status === 'step0' ? 0 : status === 'step1' ? 1 : 2;
+                const isDone = idx < currentStepNum;
+                const isCurrent = idx === currentStepNum;
+                return (
+                  <div key={idx} className="flex items-start gap-3 text-xs">
+                    <div
+                      className={`size-5 rounded-full flex items-center justify-center text-[10px] font-mono shrink-0 mt-0.5 ${
+                        isDone
+                          ? 'bg-emerald-500 text-black font-bold'
+                          : isCurrent
+                          ? 'bg-cyan-500/20 text-cyan-400 animate-pulse'
+                          : 'bg-slate-800 text-muted-foreground'
+                      }`}
+                    >
+                      {isDone ? <Check size={11} strokeWidth={3} /> : idx + 1}
+                    </div>
+                    <div>
+                      <div className="font-syne font-medium text-foreground">{s.label}</div>
+                      <div className="text-[10px] font-mono text-muted-foreground mt-0.5">{s.detail}</div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
+
+        {/* Confirmed Settlement Success Result Card */}
+        {status === 'success' && latestTx && (
+          <div className="rounded-3xl bg-gradient-to-b from-emerald-950/60 via-slate-900/90 to-slate-900/95 backdrop-blur-2xl p-6 shadow-2xl animate-scale-up">
+            <div className="flex items-center gap-2.5 pb-4 border-b border-white/[0.06]">
+              <div className="p-1.5 rounded-full bg-emerald-500/20 text-emerald-400">
+                <CheckCircle2 size={18} />
+              </div>
+              <div>
+                <h4 className="font-syne font-bold text-sm text-foreground">Transfer Sponsored &amp; Settled</h4>
+                <div className="text-[10px] font-mono text-emerald-400">Confirmed on Midnight Preprod</div>
+              </div>
+            </div>
+
+            <div className="space-y-2.5 mt-4 text-xs font-mono">
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/70">
+                <span className="text-muted-foreground">Intent:</span>
+                <span className="text-cyan-400">{latestTx.intentHash.slice(0, 10)}...</span>
+                <button onClick={() => copyToClipboard(latestTx.intentHash, 'intent')} className="text-muted-foreground hover:text-foreground">
+                  {copiedField === 'intent' ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                </button>
+              </div>
+
+              {latestTx.txHash && (
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/70">
+                  <span className="text-muted-foreground">Tx Hash:</span>
+                  <span className="text-emerald-400">{latestTx.txHash.slice(0, 10)}...</span>
+                  <button onClick={() => copyToClipboard(latestTx.txHash || '', 'tx')} className="text-muted-foreground hover:text-foreground">
+                    {copiedField === 'tx' ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 mt-4">
+              {onOpenReceipt && (
+                <button
+                  type="button"
+                  onClick={() => onOpenReceipt(latestTx)}
+                  className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-xs font-mono font-bold text-slate-950 flex items-center justify-center gap-1.5 transition-all shadow-md"
+                >
+                  <Sparkles size={12} />
+                  <span>View Official Receipt</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+        </div>
+      </div>
+
+      {/* Interactive Multi-Chain Relayer Map (Full Width) */}
+      <div className="w-full">
+        <CrossChainRouteMap sourceChain={sourceChain} asset={selectedFeeToken} feeToken={selectedFeeToken} />
       </div>
     </div>
   );

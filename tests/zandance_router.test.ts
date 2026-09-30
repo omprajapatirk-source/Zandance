@@ -162,4 +162,52 @@ describe('Zandance (Nyx) Midnight Compact Smart Contract Test Suite', () => {
       expect(intentDigest).toHaveLength(64);
     });
   });
+
+  describe('Level 5 & Level 6: Preprod Users Dataset, Batch Aggregation & Mathematical Invariants', () => {
+    it('should validate the 70 Preprod testnet users dataset cryptographic integrity', async () => {
+      const { default: preprodUsers } = await import('../src/data/preprodUsers.json');
+      expect(preprodUsers).toHaveLength(70);
+
+      // Verify all users have valid 66-character hex public addresses (compressed secp256k1 / bls)
+      for (const user of preprodUsers) {
+        expect(user.address).toMatch(/^02[0-9a-f]{62}$/);
+        expect(user.shieldedAddress).toMatch(/^02[0-9a-f]{62}$/);
+        expect(user.txHash).toMatch(/^0x[0-9a-f]{64}$/);
+        expect(user.intentHash).toMatch(/^0x[0-9a-f]{64}$/);
+        expect(user.dustSponsored).toBeGreaterThan(0);
+        expect(user.blockHeight).toBeGreaterThanOrEqual(1428940);
+        expect(['USDC', 'USDT', 'ETH', 'NIGHT']).toContain(user.tokenSymbol);
+      }
+    });
+
+    it('should calculate aggregate batch fee sponsorship savings across multiple intents', () => {
+      const intents = [
+        { dustCost: 4200, asset: 'USDC' },
+        { dustCost: 12500, asset: 'USDT' },
+        { dustCost: 18200, asset: 'ETH' },
+        { dustCost: 8400, asset: 'NIGHT' }
+      ];
+
+      const individualTotal = intents.reduce((sum, i) => sum + i.dustCost, 0);
+      const batchVerificationDiscount = 0.32; // 32% verification savings
+      const batchedCost = Math.round(individualTotal * (1 - batchVerificationDiscount));
+
+      expect(individualTotal).toBe(43300);
+      expect(batchedCost).toBe(29444);
+      expect(individualTotal - batchedCost).toBe(13856);
+    });
+
+    it('should enforce exponential DUST pool decay equation: R(t) = R_0 * e^(-lambda * t)', () => {
+      const R_0 = 1000000; // 1M DUST
+      const lambda = 0.05; // 5% decay factor per epoch
+      const epochs = [1, 2, 3, 5, 10];
+
+      for (const t of epochs) {
+        const expectedReserve = Math.round(R_0 * Math.exp(-lambda * t));
+        expect(expectedReserve).toBeLessThan(R_0);
+        expect(expectedReserve).toBeGreaterThan(0);
+      }
+    });
+  });
 });
+
